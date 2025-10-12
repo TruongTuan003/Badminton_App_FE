@@ -2,20 +2,19 @@ import React from 'react';
 import {
   Dimensions,
   ImageBackground,
+  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  SafeAreaView,
 } from 'react-native';
 import { userAPI } from '../services/api';
-import { BUTTONS, COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../styles/commonStyles';
+import { COLORS, FONTS } from '../styles/commonStyles';
 
 const { width, height } = Dimensions.get('window');
 
 export default function WelcomeScreen({ navigation }) {
-  // Lấy thông tin người dùng từ API
   const [userData, setUserData] = React.useState(null);
 
   React.useEffect(() => {
@@ -34,7 +33,6 @@ export default function WelcomeScreen({ navigation }) {
   const fullName = userData?.name || 'Người dùng';
   
   const handleGoToHome = () => {
-    // Truyền toàn bộ dữ liệu người dùng sang màn hình Home
     navigation.replace('Home', {
       ...userData,
       isLoggedIn: true

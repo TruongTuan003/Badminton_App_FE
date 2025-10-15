@@ -53,18 +53,14 @@ export default function GoalSelectionScreen({ navigation, route }) {
   const handleConfirm = async () => {
     if (selectedGoals.length > 0) {
       try {
-        // Lấy dữ liệu profile từ route params
         const profileData = route.params?.profileData;
         
-        // Kiểm tra và log dữ liệu profileData để debug
         console.log('ProfileData received in GoalSelectionScreen:', profileData);
         
-        // Kiểm tra nếu profileData không tồn tại
         if (!profileData) {
           throw new Error('Không tìm thấy thông tin người dùng');
         }
         
-        // Chuẩn bị dữ liệu cập nhật, sử dụng id hoặc userId tùy theo cái nào có sẵn
         const userId = profileData.id || profileData.userId;
         if (!userId) {
           throw new Error('Không tìm thấy ID người dùng');
@@ -75,15 +71,12 @@ export default function GoalSelectionScreen({ navigation, route }) {
           goals: selectedGoals.map(goal => goal.title)
         };
         
-        // Gọi API để cập nhật mục tiêu
         const response = await userAPI.updateProfile(updateData);
         
-        // Lưu token mới nếu có
         if (response.data.token) {
           await AsyncStorage.setItem('token', response.data.token);
         }
         
-        // Tạo object dữ liệu hoàn chỉnh
         const completeData = {
           ...profileData,
           ...response.data.user,
@@ -92,7 +85,6 @@ export default function GoalSelectionScreen({ navigation, route }) {
         
         console.log('Complete Profile Data:', completeData);
         
-        // Đăng ký thành công! Chuyển đến trang Welcome
         navigation.navigate('Auth', { userData: completeData });
       } catch (error) {
         console.error('Update goals error:', error.response?.data || error.message);
@@ -121,10 +113,8 @@ export default function GoalSelectionScreen({ navigation, route }) {
     setSelectedGoals(prevGoals => {
       const isAlreadySelected = prevGoals.find(g => g.id === goal.id);
       if (isAlreadySelected) {
-        // Nếu đã chọn rồi thì bỏ chọn
         return prevGoals.filter(g => g.id !== goal.id);
       } else {
-        // Nếu chưa chọn thì thêm vào
         return [...prevGoals, goal];
       }
     });
@@ -132,13 +122,11 @@ export default function GoalSelectionScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Bạn muốn đạt mục tiêu gì?</Text>
         <Text style={styles.subtitle}>Chúng tôi sẽ chọn lộ trình phù hợp cho người mới tập cầu lông</Text>
         <Text style={styles.hintText}>Bạn có thể chọn nhiều mục tiêu cùng lúc</Text>
         
-        {/* Selected Goals Counter */}
         {selectedGoals.length > 0 && (
           <View style={styles.selectedCounter}>
             <Text style={styles.selectedCounterText}>
@@ -147,8 +135,6 @@ export default function GoalSelectionScreen({ navigation, route }) {
           </View>
         )}
       </View>
-
-      {/* Slides Container */}
       <View style={styles.slidesContainer}>
         <ScrollView
           ref={scrollViewRef}
@@ -167,7 +153,7 @@ export default function GoalSelectionScreen({ navigation, route }) {
               <Text style={styles.goalTitle}>{goal.title}</Text>
               <Text style={styles.goalDescription}>{goal.description}</Text>
               
-                             <TouchableOpacity
+                <TouchableOpacity
                  style={[
                    styles.selectButton,
                    selectedGoals.find(g => g.id === goal.id) && styles.selectButtonActive
@@ -186,7 +172,6 @@ export default function GoalSelectionScreen({ navigation, route }) {
         </ScrollView>
       </View>
 
-      {/* Pagination Dots */}
       <View style={styles.pagination}>
         {goals.map((_, index) => (
           <TouchableOpacity
@@ -200,7 +185,6 @@ export default function GoalSelectionScreen({ navigation, route }) {
         ))}
       </View>
 
-      {/* Confirm Button */}
       <TouchableOpacity
         style={[
           styles.confirmButton,

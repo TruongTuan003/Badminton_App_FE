@@ -2,13 +2,15 @@ import React from 'react';
 import {
   Dimensions,
   ImageBackground,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { userAPI } from '../services/api';
 import { COLORS, FONTS } from '../styles/commonStyles';
 

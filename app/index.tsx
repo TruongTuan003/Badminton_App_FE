@@ -16,6 +16,7 @@ import ResetPasswordScreen from '../src/screens/ResetPasswordScreen';
 import UserScreen from '../src/screens/UserScreen';
 import WelcomeScreen from '../src/screens/WelcomeScreen';
 import WorkoutScreen from '../src/screens/WorkoutScreen';
+import ScheduleScreen from '../src/screens/ScheduleScreen';
 
 
 
@@ -37,6 +38,7 @@ export default function App() {
       <Stack.Screen name="User" component={UserScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Workout" component={WorkoutScreen} />
+      <Stack.Screen name="Schedule" component={ScheduleScreen} />
       <Stack.Screen name="BadmintonSkills" component={BadmintonSkillsScreen} />
       <Stack.Screen name="Basic" component={BasicScreen} />
       <Stack.Screen name="ExerciseDetail" component={ExerciseDetailScreen} />

@@ -18,14 +18,12 @@ const handleRegister = async () => {
       return;
     }
 
-    // Kiểm tra định dạng email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       alert('Email không hợp lệ');
       return;
     }
 
-    // Kiểm tra độ dài mật khẩu
     if (password.length < 6) {
       alert('Mật khẩu phải có ít nhất 6 ký tự');
       return;
@@ -33,11 +31,8 @@ const handleRegister = async () => {
 
     const payload = { name: fullName, email, password };
     const res = await authAPI.register(payload);
-
-    // Khi nhập đầy đủ thông tin, qua trang otp
     alert("Đăng ký thành công!");
 
-    // Chuyển qua màn OTPVerification
     navigation.navigate("OTPVerification", { userData: { email } });
   } catch (error) {
     alert(error.response?.data?.message || "Có lỗi xảy ra khi đăng ký");
@@ -50,12 +45,10 @@ const handleRegister = async () => {
   
   const handleGoogleRegister = () => {
     console.log('Google Register');
-    // Trong thực tế, bạn sẽ gọi API đăng ký bằng Google ở đây
   };
 
   const handleFacebookRegister = () => {
     console.log('Facebook Register');
-    // Trong thực tế, bạn sẽ gọi API đăng ký bằng Facebook ở đây
   };
 
   return (
@@ -66,7 +59,7 @@ const handleRegister = async () => {
       </View>
 
       <View style={styles.form}>
-        {/* Full Name */}
+       
         <View style={styles.inputContainer}>
           <MaterialIcons name="person-outline" size={24} color="#ADA4A5" style={styles.inputIcon} />
           <TextInput
@@ -78,7 +71,6 @@ const handleRegister = async () => {
           />
         </View>
 
-        {/* Email */}
         <View style={styles.inputContainer}>
           <MaterialIcons name="email" size={24} color="#ADA4A5" style={styles.inputIcon} />
           <TextInput
@@ -91,7 +83,6 @@ const handleRegister = async () => {
           />
         </View>
 
-        {/* Password */}
         <View style={styles.inputContainer}>
           <MaterialIcons name="lock-outline" size={24} color="#ADA4A5" style={styles.inputIcon} />
           <TextInput
@@ -114,7 +105,6 @@ const handleRegister = async () => {
           </TouchableOpacity>
         </View>
 
-        {/* Terms and Conditions */}
         <View style={styles.termsContainer}>
           <TouchableOpacity 
             style={styles.checkbox}
@@ -134,7 +124,7 @@ const handleRegister = async () => {
           </View>
         </View>
 
-        {/* Register Button */}
+
         <TouchableOpacity 
           style={[styles.registerButton, !acceptTerms && styles.disabledButton]} 
           onPress={handleRegister}
@@ -143,14 +133,12 @@ const handleRegister = async () => {
           <Text style={styles.registerButtonText}>Register</Text>
         </TouchableOpacity>
         
-        {/* Divider */}
         <View style={styles.dividerContainer}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>Or</Text>
           <View style={styles.dividerLine} />
         </View>
 
-        {/* Social Register Buttons */}
         <View style={styles.socialContainer}>
           <TouchableOpacity style={styles.iconButton} onPress={handleGoogleRegister}>
             <AntDesign name="google" size={24} color="#DB4437" />

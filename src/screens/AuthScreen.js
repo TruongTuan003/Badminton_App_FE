@@ -14,11 +14,11 @@ const handleLogin = async () => {
   try {
     const res = await authAPI.login(email, password);
     console.log("Login response:", res.data);
-    // Nếu BE trả về token
+    
     if (res.data.token) {
       await AsyncStorage.setItem("token", res.data.token);
     }
-    // Nếu BE trả về user, thì lấy luôn
+    
     const userData = res.data.user || {
       firstName: 'Stefani',
       lastName: 'Wong',
@@ -83,7 +83,7 @@ const handleLogin = async () => {
           />
         </View>
 
-        {/* Password */}
+        
         <View style={styles.inputContainer}>
           <MaterialIcons name="lock-outline" size={24} color="#888" style={styles.inputIcon} />
           <TextInput
@@ -106,7 +106,7 @@ const handleLogin = async () => {
           </TouchableOpacity>
         </View>
 
-        {/* Forgot Password */}
+      
         <TouchableOpacity 
           style={styles.forgotPasswordContainer} 
           onPress={handleForgotPassword}
@@ -114,20 +114,20 @@ const handleLogin = async () => {
           <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
         </TouchableOpacity>
 
-        {/* Login Button */}
+      
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <MaterialIcons name="login" size={20} color={COLORS.white} style={styles.loginIcon} />
           <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
 
-        {/* Divider */}
+       
         <View style={styles.dividerContainer}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>Or</Text>
           <View style={styles.dividerLine} />
         </View>
 
-        {/* Social Login Buttons */}
+    
         <View style={styles.socialContainer}>
           <TouchableOpacity style={styles.iconButton} onPress={handleGoogleLogin}>
             <AntDesign name="google" size={24} color="#DB4437" />

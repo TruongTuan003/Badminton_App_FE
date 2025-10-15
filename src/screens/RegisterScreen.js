@@ -1,5 +1,5 @@
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { authAPI } from "../services/api";
 import { COLORS, FONTS, SHADOWS, SIZES, SPACING } from '../styles/commonStyles';
@@ -54,8 +54,8 @@ const handleRegister = async () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>Hey there,</Text>
-        <Text style={styles.title}>Create an Account</Text>
+        <Text style={styles.greeting}>Xin Chào,</Text>
+        <Text style={styles.title}>Tạo Tài Khoản</Text>
       </View>
 
       <View style={styles.form}>
@@ -113,13 +113,13 @@ const handleRegister = async () => {
             {acceptTerms && <Text style={styles.checkmark}>✓</Text>}
           </TouchableOpacity>
           <View style={styles.termsText}>
-            <Text style={styles.termsTextNormal}>By continuing you accept our </Text>
+            <Text style={styles.termsTextNormal}>Để tiếp tục, bạn hãy chấp nhận </Text>
             <TouchableOpacity>
-              <Text style={styles.termsLink}>Privacy Policy</Text>
+              <Text style={styles.termsLink}>Chính Sách Bảo Mật</Text>
             </TouchableOpacity>
-            <Text style={styles.termsTextNormal}> and </Text>
+            <Text style={styles.termsTextNormal}> và </Text>
             <TouchableOpacity>
-              <Text style={styles.termsLink}>Terms of Use</Text>
+              <Text style={styles.termsLink}>Điều Khoản Sử Dụng</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -130,7 +130,7 @@ const handleRegister = async () => {
           onPress={handleRegister}
           disabled={!acceptTerms}
         >
-          <Text style={styles.registerButtonText}>Register</Text>
+          <Text style={styles.registerButtonText}>Đăng Ký</Text>
         </TouchableOpacity>
         
         <View style={styles.dividerContainer}>

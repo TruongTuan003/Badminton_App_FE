@@ -1,6 +1,6 @@
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { authAPI } from '../services/api';
 import { COLORS, FONTS, SHADOWS, SIZES, SPACING } from '../styles/commonStyles';
@@ -65,8 +65,8 @@ const handleLogin = async () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>Hey there,</Text>
-        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.greeting}>Chào Bạn,</Text>
+        <Text style={styles.title}>Chào Mừng Trở Lại</Text>
       </View>
 
       <View style={styles.form}>
@@ -88,7 +88,7 @@ const handleLogin = async () => {
           <MaterialIcons name="lock-outline" size={24} color="#888" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Password"
+            placeholder="Mật khẩu"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
@@ -111,19 +111,19 @@ const handleLogin = async () => {
           style={styles.forgotPasswordContainer} 
           onPress={handleForgotPassword}
         >
-          <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
+          <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
         </TouchableOpacity>
 
       
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <MaterialIcons name="login" size={20} color={COLORS.white} style={styles.loginIcon} />
-          <Text style={styles.loginButtonText}>Login</Text>
+          <Text style={styles.loginButtonText}>Đăng Nhập</Text>
         </TouchableOpacity>
 
        
         <View style={styles.dividerContainer}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>Or</Text>
+          <Text style={styles.dividerText}>Hoặc</Text>
           <View style={styles.dividerLine} />
         </View>
 
@@ -140,9 +140,9 @@ const handleLogin = async () => {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Don't have an account yet? </Text>
+        <Text style={styles.footerText}>Bạn chưa có tài khoản? </Text>
         <TouchableOpacity onPress={handleRegister}>
-          <Text style={styles.registerText}>Register</Text>
+          <Text style={styles.registerText}>Đăng Ký</Text>
         </TouchableOpacity>
       </View>
     </View>

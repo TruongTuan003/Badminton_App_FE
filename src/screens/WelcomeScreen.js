@@ -52,7 +52,7 @@ export default function WelcomeScreen({ navigation }) {
           <View style={styles.content}>
             <View style={styles.textContainer}>
               <Text style={styles.welcomeTitle}>
-                Welcome, <Text style={styles.nameHighlight}>{fullName}</Text>
+                Chào Mừng, <Text style={styles.nameHighlight}>{fullName}</Text>
               </Text>
               <Text style={styles.welcomeMessage}>
                 You are all set now, let's reach your{'\n'}
@@ -65,7 +65,7 @@ export default function WelcomeScreen({ navigation }) {
               onPress={handleGoToHome}
               activeOpacity={0.8}
             >
-              <Text style={styles.goToHomeButtonText}>Go To Home</Text>
+              <Text style={styles.goToHomeButtonText}>Trang Chủ</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>

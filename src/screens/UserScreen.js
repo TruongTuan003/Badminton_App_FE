@@ -252,7 +252,7 @@ export default function UserScreen({ navigation, route }) {
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
           <Ionicons name="home-outline" size={24} color="#ADA4A5" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Workout')}>
           <Feather name="activity" size={24} color="#ADA4A5" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.navButton}>

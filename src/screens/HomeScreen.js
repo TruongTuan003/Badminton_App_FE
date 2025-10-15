@@ -112,7 +112,15 @@ const programSubtitle = goalNames.length
         <View style={styles.scheduleCard}>
           <View style={styles.scheduleHeader}>
             <Text style={styles.scheduleTitle}>Lịch Tập</Text>
-            <TouchableOpacity style={styles.pillButton}>
+            <TouchableOpacity 
+              style={styles.pillButton} 
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+              onPress={() => {
+                console.log('Go to Schedule');
+                navigation.navigate('Schedule');
+              }}
+            >
               <Text style={styles.pillButtonText}>Chi tiết</Text>
             </TouchableOpacity>
           </View>

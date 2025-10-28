@@ -17,6 +17,9 @@ import UserScreen from '../src/screens/UserScreen';
 import WelcomeScreen from '../src/screens/WelcomeScreen';
 import WorkoutScreen from '../src/screens/WorkoutScreen';
 import ScheduleScreen from '../src/screens/ScheduleScreen';
+import MenuScreen from '../src/screens/MenuScreen';
+import MenuDetailScreen from '../src/screens/MenuDetailScreen';
+import FoodScreen from '../src/screens/FoodScreen';
 
 
 
@@ -39,6 +42,9 @@ export default function App() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="Workout" component={WorkoutScreen} />
       <Stack.Screen name="Schedule" component={ScheduleScreen} />
+      <Stack.Screen name="Menu" component={MenuScreen} />
+      <Stack.Screen name="MenuDetail" component={MenuDetailScreen} />
+      <Stack.Screen name="Food" component={FoodScreen} />
       <Stack.Screen name="BadmintonSkills" component={BadmintonSkillsScreen} />
       <Stack.Screen name="Basic" component={BasicScreen} />
       <Stack.Screen name="ExerciseDetail" component={ExerciseDetailScreen} />

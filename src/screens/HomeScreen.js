@@ -140,7 +140,10 @@ const programSubtitle = goalNames.length
         <View style={styles.mealCard}>
           <View style={styles.scheduleHeader}>
             <Text style={styles.mealTitle}>Thực đơn hôm nay</Text>
-            <TouchableOpacity style={styles.pillButtonDanger}>
+            <TouchableOpacity 
+              style={styles.pillButtonDanger}
+              onPress={() => navigation.navigate('Menu')}
+            >
               <Text style={styles.pillButtonDangerText}>Chi tiết</Text>
             </TouchableOpacity>
           </View>

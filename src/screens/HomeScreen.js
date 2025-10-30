@@ -117,7 +117,6 @@ const programSubtitle = goalNames.length
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               activeOpacity={0.7}
               onPress={() => {
-                console.log('Go to Schedule');
                 navigation.navigate('Schedule');
               }}
             >

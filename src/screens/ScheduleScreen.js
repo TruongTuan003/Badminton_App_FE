@@ -22,7 +22,6 @@ export default function ScheduleScreen({ navigation }) {
   function getWeekDays(centerDate) {
     const year = centerDate.getFullYear();
     const month = centerDate.getMonth();
-    // tạo dải 7 ngày xung quanh ngày đang chọn (-3..+3), giữ trong tháng
     const startDay = clampDay(year, month, centerDate.getDate() - 3);
     const daysArr = [];
     for (let i = 0; i < 7; i++) {
@@ -71,7 +70,6 @@ export default function ScheduleScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={22} color="#1D1617" />
@@ -81,8 +79,6 @@ export default function ScheduleScreen({ navigation }) {
           <Feather name="more-horizontal" size={22} color="#1D1617" />
         </TouchableOpacity>
       </View>
-
-      {/* Month selector */}
       <View style={styles.monthRow}>
         <TouchableOpacity onPress={() => changeMonth(-1)}>
           <Feather name="chevron-left" size={18} color="#7B6F72" />
@@ -94,8 +90,6 @@ export default function ScheduleScreen({ navigation }) {
           <Feather name="chevron-right" size={18} color="#7B6F72" />
         </TouchableOpacity>
       </View>
-
-      {/* Day pills */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -118,8 +112,6 @@ export default function ScheduleScreen({ navigation }) {
           );
         })}
       </ScrollView>
-
-      {/* Timeline */}
       <ScrollView style={styles.timeline} showsVerticalScrollIndicator={false}>
         {[
           '06:00 AM','07:00 AM','08:00 AM','09:00 AM','10:00 AM','11:00 AM','12:00 AM',
@@ -131,7 +123,6 @@ export default function ScheduleScreen({ navigation }) {
           </View>
         ))}
 
-        {/* Positioned items (simplified stacked layout) */}
         <View style={styles.itemsOverlay}>
           {scheduleItems.map((item, index) => (
             <TouchableOpacity
@@ -145,13 +136,9 @@ export default function ScheduleScreen({ navigation }) {
           ))}
         </View>
       </ScrollView>
-
-      {/* Floating Action Button */}
       <TouchableOpacity style={styles.fab}>
         <Feather name="plus" size={26} color="#FFFFFF" />
       </TouchableOpacity>
-
-      {/* Month/Year Picker Modal */}
       <Modal transparent visible={pickerVisible} animationType="fade" onRequestClose={() => setPickerVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -229,6 +216,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    marginTop: 10,
   },
   header: {
     flexDirection: 'row',

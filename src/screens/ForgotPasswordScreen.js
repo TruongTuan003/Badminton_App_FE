@@ -1,11 +1,10 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { COLORS, FONTS, SHADOWS, SIZES, SPACING } from '../styles/commonStyles';
 import { authAPI } from '../services/api';
+import { COLORS, FONTS, SHADOWS, SIZES, SPACING } from '../styles/commonStyles';
 
 export default function ForgotPasswordScreen({ navigation, route }) {
-  // Lấy email từ trang đăng nhập nếu có
   const initialEmail = route.params?.email || '';
   const [email, setEmail] = useState(initialEmail);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -16,7 +15,6 @@ export default function ForgotPasswordScreen({ navigation, route }) {
       return;
     }
 
-    // Kiểm tra định dạng email đơn giản
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert('Lỗi', 'Vui lòng nhập địa chỉ email hợp lệ');
@@ -26,7 +24,6 @@ export default function ForgotPasswordScreen({ navigation, route }) {
     setIsSubmitting(true);
 
     try {
-      // Gọi API forgotPassword
       const response = await authAPI.forgotPassword(email);
       
       setIsSubmitting(false);
@@ -68,7 +65,6 @@ export default function ForgotPasswordScreen({ navigation, route }) {
       </View>
 
       <View style={styles.form}>
-        {/* Email Input */}
         <View style={styles.inputContainer}>
           <MaterialIcons name="email" size={24} color="#ADA4A5" style={styles.inputIcon} />
           <TextInput
@@ -82,7 +78,6 @@ export default function ForgotPasswordScreen({ navigation, route }) {
           />
         </View>
 
-        {/* Submit Button */}
         <TouchableOpacity 
           style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} 
           onPress={handleResetPassword}

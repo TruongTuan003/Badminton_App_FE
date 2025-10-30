@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "FitnestX",
-    "slug": "FitnestX",
+    "name": "Bad2Pro",
+    "slug": "Bad2Pro",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "fitnestx",
+    "scheme": "bad2pro",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

@@ -20,12 +20,10 @@ export default function OTPVerificationScreen({ navigation, route }) {
   const isPasswordReset = route.params?.isPasswordReset || false;
   const customMessage = route.params?.message;
   
-  // Tạo state cho 6 ô input OTP
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [timer, setTimer] = useState(300); // 5 phút = 300 giây
+  const [timer, setTimer] = useState(300); 
   const [isResendActive, setIsResendActive] = useState(false);
   
-  // Refs cho các input để focus
   const inputRefs = [
     useRef(null),
     useRef(null),
@@ -35,7 +33,7 @@ export default function OTPVerificationScreen({ navigation, route }) {
     useRef(null),
   ];
 
-  // Timer đếm ngược
+
   useEffect(() => {
     let interval = null;
     if (timer > 0) {
@@ -49,61 +47,50 @@ export default function OTPVerificationScreen({ navigation, route }) {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Xử lý khi nhập OTP
   const handleOtpChange = (value, index) => {
-    // Chỉ cho phép nhập số
     if (/^\d*$/.test(value)) {
       const newOtp = [...otp];
       newOtp[index] = value;
       setOtp(newOtp);
       
-      // Nếu có giá trị và không phải ô cuối cùng, focus vào ô tiếp theo
       if (value && index < 5) {
         inputRefs[index + 1].current.focus();
       }
     }
   };
 
-  // Xử lý khi xóa OTP
   const handleKeyPress = (e, index) => {
     if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-      // Nếu ô hiện tại trống và nhấn backspace, focus về ô trước đó
       inputRefs[index - 1].current.focus();
     }
   };
 
-  // Xử lý khi xác nhận OTP
 const handleVerify = async () => {
   try {
-    // Kiểm tra xem đã nhập đủ 6 số chưa
     if (otp.some(digit => digit === '')) {
       Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ 6 số OTP');
       return;
     }
 
-    // Chuyển array OTP thành string
     const otpString = otp.join('');
     
     if (isPasswordReset) {
-      // Nếu là quên mật khẩu, chuyển sang màn hình đặt lại mật khẩu
       navigation.navigate('ResetPassword', {
         email: email,
         otp: otpString
       });
     } else {
-      // Nếu là xác thực đăng ký
+ 
       const res = await authAPI.verifyOtp(email, otpString);
       console.log("OTP verified:", res.data);
 
-      // Nếu BE trả về token, lưu vào AsyncStorage
       if (res.data.token) {
         await AsyncStorage.setItem("token", res.data.token);
       }
 
-      // Chuyển đến màn hình Profile với id và name để hoàn tất thông tin
       navigation.replace("Profile", { 
         userData: {
-          id: res.data.userId, // Sử dụng 'id' thay vì 'userId' để phù hợp với cấu trúc MongoDB
+          id: res.data.userId, 
           email: email,
           name: res.data.name || ''
         }
@@ -115,25 +102,19 @@ const handleVerify = async () => {
   }
 };
 
-  // Xử lý khi gửi lại mã OTP
-  // Gọi api resend otp
 const handleResendOtp = async () => {
   if (isResendActive) {
     console.log('Resending OTP to:', email);
     try {
       if (isPasswordReset) {
-        // Nếu là quên mật khẩu, gọi API forgot-password
         await authAPI.forgotPassword(email);
       } else {
-        // Nếu là xác thực đăng ký, gọi API resend-otp
         await authAPI.resendOtp(email);
       }
       
-      // Reset timer và trạng thái
-      setTimer(300); // 5 phút
+      setTimer(300); 
       setIsResendActive(false);
       setOtp(['', '', '', '', '', '']);
-      // Focus vào ô đầu tiên
       inputRefs[0].current.focus();
       Alert.alert('Thông báo', 'Mã OTP mới đã được gửi đến email của bạn');
     } catch (error) {
@@ -144,7 +125,6 @@ const handleResendOtp = async () => {
 };
 
 
-  // Format timer thành phút:giây
   const formatTimer = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -159,7 +139,7 @@ const handleResendOtp = async () => {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <AntDesign name="arrowleft" size={24} color="#1D1617" />
+            <AntDesign name="left" size={24} color="#1D1617" />
           </TouchableOpacity>
         </View>
         

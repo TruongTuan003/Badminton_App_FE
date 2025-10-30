@@ -29,7 +29,7 @@ function StepItem({ stepNumber, description, isLast = false }) {
 }
 
 const videoSource =
-  "https://res.cloudinary.com/dqkjb3mas/video/upload/v1757761899/videoBadminton/VIdeoBadminton_xehg5c.mp4";
+  "https://res.cloudinary.com/dqkjb3mas/video/upload/v1760533848/videoBadminton/badminton_fqyzut.mp4";
 
 export default function ExerciseDetailScreen({ navigation }) {
   const player = useVideoPlayer(videoSource, (player) => {
@@ -77,15 +77,15 @@ export default function ExerciseDetailScreen({ navigation }) {
             <VideoView
               style={styles.video}
               player={player}
-              allowsPictureInPicture
               resizeMode="contain"
+              contentFit="contain"
               shouldPlay
               isLooping
             />
           </TouchableWithoutFeedback>
         </View>
 
-        {/* Exercise Title and Subtitle */}
+        
         <View style={styles.titleSection}>
           <Text style={styles.exerciseTitle}>
             Cầm vợt đúng cách (Forehand & Backhand Grip)
@@ -95,7 +95,7 @@ export default function ExerciseDetailScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Descriptions Section */}
+       
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Descriptions</Text>
           <Text style={styles.descriptionText}>
@@ -103,7 +103,6 @@ export default function ExerciseDetailScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Steps Section */}
         <View style={styles.section}>
           <View style={styles.stepsHeader}>
             <Text style={styles.sectionTitle}>Các bước thực hiện</Text>
@@ -127,7 +126,6 @@ export default function ExerciseDetailScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Common Mistakes Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sai lầm thường gặp</Text>
           <Text style={styles.mistakeText}>
@@ -135,11 +133,9 @@ export default function ExerciseDetailScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Bottom spacing for button */}
         <View style={styles.bottomSpacing}></View>
       </ScrollView>
 
-      {/* Complete Button */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.completeButton}
@@ -153,7 +149,6 @@ export default function ExerciseDetailScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  // ===== Container & Layout =====
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
@@ -163,7 +158,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  // ===== Header =====
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -188,18 +182,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // ===== Video Section =====
   videoSection: {
-    height: 200,
-    borderRadius: 15,
-    marginBottom: 20,
-    position: "relative",
-    overflow: "hidden",
-  },
-  video: {
-    width,
-    aspectRatio: 9 / 16,
-  },
+  height: 200,
+  borderRadius: 15,
+  marginBottom: 20,
+  position: "relative",
+  overflow: "hidden",
+},
+video: {
+  width: '100%',
+  aspectRatio: 16 / 9, // 👈 sửa lại
+},
   playButton: {
     position: "absolute",
     top: "50%",
@@ -207,7 +200,6 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -25 }, { translateY: -25 }],
   },
 
-  // ===== Title Section =====
   titleSection: {
     marginBottom: 25,
   },
@@ -222,7 +214,6 @@ const styles = StyleSheet.create({
     color: "#7B6F72",
   },
 
-  // ===== Section =====
   section: {
     marginBottom: 25,
   },
@@ -237,8 +228,6 @@ const styles = StyleSheet.create({
     color: "#7B6F72",
     lineHeight: 20,
   },
-
-  // ===== Steps =====
   stepsHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -289,14 +278,12 @@ const styles = StyleSheet.create({
     paddingTop: 5,
   },
 
-  // ===== Mistakes =====
   mistakeText: {
     fontSize: 14,
     color: "#7B6F72",
     lineHeight: 20,
   },
 
-  // ===== Button =====
   buttonContainer: {
     paddingHorizontal: 20,
     paddingVertical: 20,
@@ -314,7 +301,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  // ===== Bottom Spacing =====
   bottomSpacing: {
     height: 20,
   },

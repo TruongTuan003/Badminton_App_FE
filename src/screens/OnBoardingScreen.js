@@ -22,7 +22,7 @@ export default function OnboardingScreen({ navigation }) {
             <View style={styles.titleWrapper}>
               <Text style={styles.welcome}>Welcome</Text>
               <Text style={styles.welcome1}>to</Text>
-              <Text style={styles.title}>FITNESTX</Text>
+              <Text style={styles.title}>Bad2Pro</Text>
             </View>
             <Text style={styles.description}>Everybody Can Train</Text>
           </View>

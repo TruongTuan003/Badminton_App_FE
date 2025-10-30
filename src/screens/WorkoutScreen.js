@@ -1,6 +1,13 @@
-import { Feather } from '@expo/vector-icons';
-import React from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Feather } from "@expo/vector-icons";
+import React from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 function WorkoutCard({ title, time, active, setActive, color }) {
   return (
@@ -15,28 +22,31 @@ function WorkoutCard({ title, time, active, setActive, color }) {
       <Switch
         value={active}
         onValueChange={setActive}
-        trackColor={{ false: '#DDDADA', true: '#92A3FD' }}
+        trackColor={{ false: "#DDDADA", true: "#92A3FD" }}
         thumbColor="#FFFFFF"
       />
     </TouchableOpacity>
   );
 }
 
-
-
 export default function WorkoutScreen({ navigation }) {
   const [fullbodyActive, setFullbodyActive] = React.useState(true);
   const [upperbodyActive, setUpperbodyActive] = React.useState(false);
+  const handlePress = (goal) => {
+    navigation.navigate("TrainingList", { goal });
+  };
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
-
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.circleButton}
-              onPress={() => navigation.goBack()}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={styles.scrollView}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.circleButton}
+            onPress={() => navigation.goBack()}
           >
             <Feather name="arrow-left" size={24} color="#1D1617" />
           </TouchableOpacity>
@@ -62,7 +72,7 @@ export default function WorkoutScreen({ navigation }) {
               <Text style={styles.seeMoreText}>Xem thêm</Text>
             </TouchableOpacity>
           </View>
-          
+
           <WorkoutCard
             title="Toàn thân"
             time="Hôm nay, 03:00pm"
@@ -76,43 +86,48 @@ export default function WorkoutScreen({ navigation }) {
             active={upperbodyActive}
             setActive={setUpperbodyActive}
             color="#F7E8F1"
-          /> 
-          </View>
+          />
+        </View>
 
-                 {/* Categories */}
-         <View style={styles.section}>
-           <Text style={styles.sectionTitle}>Bạn muốn tập gì?</Text>
-           
-           {/* Badminton Skills Card */}
-           <TouchableOpacity 
-             style={styles.categoryCard}
-             onPress={() => navigation.navigate('BadmintonSkills')}
-           >
-             <Text style={styles.categoryTitle}>Nâng cao kỹ năng cầu lông</Text>
-             <Text style={styles.categoryDescription}>
-               Các bài tập giúp cải thiện kỹ thuật, từ cơ bản đến nâng cao
-             </Text>
-             <Text style={styles.seeMoreButton}>Xem thêm</Text>
-           </TouchableOpacity>
+        {/* Categories */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Bạn muốn tập gì?</Text>
 
-           {/* Physical Fitness Card */}
-           <TouchableOpacity style={styles.categoryCard}>
-             <Text style={styles.categoryTitle}>Cải thiện thể chất</Text>
-             <Text style={styles.categoryDescription}>
-               Tăng sức bền, tốc độ và sự linh hoạt cho mọi trận đấu.
-             </Text>
-             <Text style={styles.seeMoreButton}>Xem thêm</Text>
-           </TouchableOpacity>
+          {/* Badminton Skills Card */}
+          <TouchableOpacity
+            style={styles.categoryCard}
+            onPress={() => handlePress("Nâng cao kỹ năng cầu lông")}
+          >
+            <Text style={styles.categoryTitle}>Nâng cao kỹ năng cầu lông</Text>
+            <Text style={styles.categoryDescription}>
+              Các bài tập giúp cải thiện kỹ thuật, từ cơ bản đến nâng cao.
+            </Text>
+            <Text style={styles.seeMoreButton}>Xem thêm</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.categoryCard}
+            onPress={() => handlePress("Cải thiện thể chất")}
+          >
+            <Text style={styles.categoryTitle}>Cải thiện thể chất</Text>
+            <Text style={styles.categoryDescription}>
+              Tăng sức bền, tốc độ và sự linh hoạt cho mọi trận đấu.
+            </Text>
+            <Text style={styles.seeMoreButton}>Xem thêm</Text>
+          </TouchableOpacity>
 
-           {/* Health Management Card */}
-           <TouchableOpacity style={styles.categoryCard}>
-             <Text style={styles.categoryTitle}>Quản lý hình thể và sức khỏe</Text>
-             <Text style={styles.categoryDescription}>
-               Giảm mỡ, duy trì vóc dáng và kết hợp chế độ dinh dưỡng.
-             </Text>
-             <Text style={styles.seeMoreButton}>Xem thêm</Text>
-           </TouchableOpacity>
-         </View>
+          <TouchableOpacity
+            style={styles.categoryCard}
+            onPress={() => handlePress("Quản lý hình thể và sức khỏe")}
+          >
+            <Text style={styles.categoryTitle}>
+              Quản lý hình thể và sức khỏe
+            </Text>
+            <Text style={styles.categoryDescription}>
+              Giảm mỡ, duy trì vóc dáng và kết hợp chế độ dinh dưỡng.
+            </Text>
+            <Text style={styles.seeMoreButton}>Xem thêm</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.bottomSpacing}></View>
       </ScrollView>
     </View>
@@ -123,7 +138,7 @@ const styles = StyleSheet.create({
   // ===== Container & Layout =====
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   scrollView: {
     flex: 1,
@@ -132,9 +147,9 @@ const styles = StyleSheet.create({
 
   // ===== Header =====
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 50,
     marginBottom: 30,
   },
@@ -142,41 +157,41 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F8F8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F7F8F8",
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1D1617',
+    fontWeight: "bold",
+    color: "#1D1617",
   },
 
   // ===== Schedule Card =====
   scheduleCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#E8F3F1',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#E8F3F1",
     borderRadius: 22,
     padding: 20,
     marginBottom: 30,
   },
   scheduleTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1617',
+    fontWeight: "600",
+    color: "#1D1617",
   },
   checkButton: {
-    backgroundColor: '#92A3FD',
+    backgroundColor: "#92A3FD",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 15,
   },
   checkButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 
   // ===== Section =====
@@ -184,31 +199,31 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1D1617',
+    fontWeight: "bold",
+    color: "#1D1617",
   },
   seeMoreText: {
     fontSize: 14,
-    color: '#92A3FD',
-    fontWeight: '500',
+    color: "#92A3FD",
+    fontWeight: "500",
   },
 
   // ===== Workout Card =====
   workoutCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     borderRadius: 15,
     padding: 15,
     marginBottom: 15,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -227,56 +242,55 @@ const styles = StyleSheet.create({
   },
   workoutName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1617',
+    fontWeight: "600",
+    color: "#1D1617",
     marginBottom: 4,
   },
   workoutTime: {
     fontSize: 14,
-    color: '#7B6F72',
+    color: "#7B6F72",
   },
 
-     // ===== Category Card =====
-   categoryCard: {
-     backgroundColor: '#d5dbfdff',
-     borderRadius: 15,
-     padding: 20,
-     marginBottom: 15,
-     shadowColor: '#000',
-     shadowOffset: {
-       width: 0,
-       height: 2,
-     },
-     shadowOpacity: 0.1,
-     shadowRadius: 3.84,
-     elevation: 5,
-   },
+  // ===== Category Card =====
+  categoryCard: {
+    backgroundColor: "#d5dbfdff",
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
   categoryTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1D1617',
+    fontWeight: "bold",
+    color: "#1D1617",
     marginBottom: 8,
   },
   categoryDescription: {
     fontSize: 14,
-    color: '#7B6F72',
+    color: "#7B6F72",
     lineHeight: 20,
     marginBottom: 12,
   },
-     seeMoreButton: {
-     fontSize: 14,
-     fontWeight: '500',
-     color: '#92A3FD',
-     backgroundColor: '#FFFFFF',
-     alignSelf: 'flex-start',
-     paddingHorizontal: 12,
-     paddingVertical: 6,
-     borderRadius: 12,
-   },
+  seeMoreButton: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#92A3FD",
+    backgroundColor: "#FFFFFF",
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
 
   // ===== Bottom Spacing =====
   bottomSpacing: {
     height: 100,
   },
 });
-

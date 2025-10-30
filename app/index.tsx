@@ -5,22 +5,23 @@ import BadmintonSkillsScreen from '../src/screens/BadmintonSkillsScreen';
 import BasicScreen from '../src/screens/BasicScreen';
 import EditProfileScreen from '../src/screens/EditProfileScreen';
 import ExerciseDetailScreen from '../src/screens/ExerciseDetailScreen';
+import FoodScreen from '../src/screens/FoodScreen';
 import ForgotPasswordScreen from '../src/screens/ForgotPasswordScreen';
 import GoalSelectionScreen from '../src/screens/GoalSelectionScreen';
 import HomeScreen from '../src/screens/HomeScreen';
+import MenuDetailScreen from '../src/screens/MenuDetailScreen';
+import MenuScreen from '../src/screens/MenuScreen';
 import OnboardingScreen from '../src/screens/OnBoardingScreen';
 import OTPVerificationScreen from '../src/screens/OTPVerificationScreen';
 import ProfileScreen from '../src/screens/ProfileScreen';
 import RegisterScreen from '../src/screens/RegisterScreen';
 import ResetPasswordScreen from '../src/screens/ResetPasswordScreen';
+import ScheduleScreen from '../src/screens/ScheduleScreen';
+import TrainingDetailScreen from '../src/screens/TrainingDetailScreen';
+import TrainingListScreen from '../src/screens/TrainingListScreen';
 import UserScreen from '../src/screens/UserScreen';
 import WelcomeScreen from '../src/screens/WelcomeScreen';
 import WorkoutScreen from '../src/screens/WorkoutScreen';
-import ScheduleScreen from '../src/screens/ScheduleScreen';
-import MenuScreen from '../src/screens/MenuScreen';
-import MenuDetailScreen from '../src/screens/MenuDetailScreen';
-import FoodScreen from '../src/screens/FoodScreen';
-
 
 
 const Stack = createStackNavigator();
@@ -48,7 +49,8 @@ export default function App() {
       <Stack.Screen name="BadmintonSkills" component={BadmintonSkillsScreen} />
       <Stack.Screen name="Basic" component={BasicScreen} />
       <Stack.Screen name="ExerciseDetail" component={ExerciseDetailScreen} />
-
+      <Stack.Screen name="TrainingList" component={TrainingListScreen} />
+    <Stack.Screen name="TrainingDetail" component={TrainingDetailScreen} />
     </Stack.Navigator>
   );
 }

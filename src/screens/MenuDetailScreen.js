@@ -1,6 +1,7 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { mealScheduleAPI } from '../services/api';
 import { COLORS, FONTS, SHADOWS } from '../styles/commonStyles';
 
 export default function MenuDetailScreen({ navigation }) {
@@ -10,6 +11,30 @@ export default function MenuDetailScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = React.useState(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
   const [selectedDateIndex, setSelectedDateIndex] = React.useState(3);
   const [pickerVisible, setPickerVisible] = React.useState(false);
+  const [meals, setMeals] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    const fetchMeals = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const yyyy = selectedDate.getFullYear();
+        const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(selectedDate.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+        const res = await mealScheduleAPI.getByDate(dateStr);
+        setMeals(res.data || []);
+      } catch (err) {
+        setError(err?.response?.data?.message || err.message || 'Không thể tải thực đơn!');
+        setMeals([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMeals();
+  }, [selectedDate]);
 
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   
@@ -35,85 +60,32 @@ export default function MenuDetailScreen({ navigation }) {
 
   const days = getWeekDays(selectedDate);
 
-  // Dữ liệu món ăn theo ngày
-  const getMealsForDate = (date) => {
-    const dateStr = date.toDateString();
-    const mealsData = {
-      [new Date(2024, 4, 12).toDateString()]: [
-        {
-          id: 1,
-          mealType: 'Breakfast',
-          mealTypeVi: 'Bữa sáng',
-          summary: '2 meals | 230 calories',
-          items: [
-            { id: 1, name: 'Honey Pancake', time: '07:00am', icon: '🥞', calories: 180 },
-            { id: 2, name: 'Coffee', time: '07:30am', icon: '☕', calories: 50 }
-          ]
-        },
-        {
-          id: 2,
-          mealType: 'Lunch',
-          mealTypeVi: 'Bữa trưa',
-          summary: '2 meals | 500 calories',
-          items: [
-            { id: 3, name: 'Chicken Steak', time: '01:00pm', icon: '🍗', calories: 400 },
-            { id: 4, name: 'Milk', time: '01:20pm', icon: '🥛', calories: 100 }
-          ]
-        },
-        {
-          id: 3,
-          mealType: 'Snacks',
-          mealTypeVi: 'Bữa phụ',
-          summary: '2 meals | 140 calories',
-          items: [
-            { id: 5, name: 'Orange', time: '04:30pm', icon: '🍊', calories: 60 },
-            { id: 6, name: 'Apple Pie', time: '04:40pm', icon: '🥧', calories: 80 }
-          ]
-        },
-        {
-          id: 4,
-          mealType: 'Dinner',
-          mealTypeVi: 'Bữa tối',
-          summary: '2 meals | 120 calories',
-          items: [
-            { id: 7, name: 'Salad', time: '07:10pm', icon: '🥗', calories: 50 },
-            { id: 8, name: 'Oatmeal', time: '08:10pm', icon: '🥣', calories: 70 }
-          ]
-        }
-      ],
-      [new Date(2024, 4, 13).toDateString()]: [
-        {
-          id: 1,
-          mealType: 'Breakfast',
-          mealTypeVi: 'Bữa sáng',
-          summary: '2 meals | 200 calories',
-          items: [
-            { id: 1, name: 'Toast with Butter', time: '07:00am', icon: '🍞', calories: 150 },
-            { id: 2, name: 'Orange Juice', time: '07:30am', icon: '🍊', calories: 50 }
-          ]
-        },
-        {
-          id: 2,
-          mealType: 'Lunch',
-          mealTypeVi: 'Bữa trưa',
-          summary: '2 meals | 450 calories',
-          items: [
-            { id: 3, name: 'Fish and Rice', time: '01:00pm', icon: '🐟', calories: 350 },
-            { id: 4, name: 'Green Tea', time: '01:20pm', icon: '🍵', calories: 100 }
-          ]
-        }
-      ]
-    };
-    return mealsData[dateStr] || [];
-  };
 
-  const currentMeals = getMealsForDate(selectedDate);
+  // Thay cho currentMeals:
+  const currentMeals = meals;
 
-  // Dữ liệu dinh dưỡng hôm nay
+  // Tính tổng dinh dưỡng hôm nay
+  const nutritionTotal = React.useMemo(() => {
+    let calories = 0;
+    let proteins = 0;
+    let fats = 0;
+    let carbs = 0;
+    meals.forEach((meal) => {
+      const m = meal.mealId || {};
+      calories += m.calories ? Number(m.calories) : 0;
+      proteins += m.protein ? Number(m.protein) : 0;
+      fats += m.fat ? Number(m.fat) : 0;
+      carbs += m.carbs ? Number(m.carbs) : 0;
+    });
+    return { calories, proteins, fats, carbs };
+  }, [meals]);
+  
+  // Dữ liệu dinh dưỡng hôm nay (thay thế hard code)
   const todayNutrition = {
-    calories: { value: 320, unit: 'kCal', progress: 60, icon: '🔥' },
-    proteins: { value: 300, unit: 'g', progress: 80, icon: '🍗' },
-    fats: { value: 150, unit: 'g', progress: 40, icon: '🥚' }
+    calories: { label: 'Năng lượng', value: nutritionTotal.calories, unit: 'kCal', progress: nutritionTotal.calories ? Math.min(Math.round(nutritionTotal.calories/2000*100),100) : 0, icon: '🔥' },
+    proteins: { label: 'Đạm', value: nutritionTotal.proteins, unit: 'g', progress: nutritionTotal.proteins ? Math.min(Math.round(nutritionTotal.proteins/100*100),100) : 0, icon: '🍗' },
+    fats: { label: 'Chất béo', value: nutritionTotal.fats, unit: 'g', progress: nutritionTotal.fats ? Math.min(Math.round(nutritionTotal.fats/60*100),100) : 0, icon: '🥚' },
+    carbs: { label: 'Tinh bột', value: nutritionTotal.carbs, unit: 'g', progress: nutritionTotal.carbs ? Math.min(Math.round(nutritionTotal.carbs/250*100),100) : 0, icon: '🍚' },
   };
 
   function changeMonth(delta) {
@@ -143,35 +115,38 @@ export default function MenuDetailScreen({ navigation }) {
     setPickerVisible(false);
   }
 
-  const renderMealSection = (meal) => (
-    <View key={meal.id} style={styles.mealSection}>
-      <View style={styles.mealHeader}>
-        <Text style={styles.mealTypeTitle}>{meal.mealType}</Text>
-        <Text style={styles.mealSummary}>{meal.summary}</Text>
-      </View>
-      
-      <View style={styles.mealItems}>
-        {meal.items.map((item) => (
-          <TouchableOpacity key={item.id} style={styles.mealItem}>
+  // Render lại meal section cho đúng dữ liệu từ mealSchedule: gồm mealId, meal_type, time...
+  const renderMealSection = () => (
+    <View style={styles.mealSection}>
+      {loading ? (
+        <Text>Đang tải...</Text>
+      ) : error ? (
+        <Text style={{ color: 'red' }}>{error}</Text>
+      ) : currentMeals.length === 0 ? (
+        <Text>Không có món ăn nào cho ngày này</Text>
+      ) : (
+        currentMeals.map((meal) => (
+          <View key={meal._id} style={styles.mealItem}>
             <View style={styles.mealItemLeft}>
               <View style={styles.mealItemIcon}>
-                <Text style={styles.mealItemIconText}>{item.icon}</Text>
+                <Text style={styles.mealItemIconText}>{meal.mealId?.icon || '🍽️'}</Text>
               </View>
               <View style={styles.mealItemInfo}>
-                <Text style={styles.mealItemName}>{item.name}</Text>
-                <Text style={styles.mealItemTime}>{item.time}</Text>
+                <Text style={styles.mealItemName}>{meal.mealId?.name}</Text>
+                {/* meal_type, time nếu có */}
+                <Text style={styles.mealItemTime}>{meal.meal_type ? `${meal.meal_type} ${meal.time ? '- ' + meal.time : ''}` : meal.time || ''}</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
-          </TouchableOpacity>
-        ))}
-      </View>
+          </View>
+        ))
+      )}
     </View>
   );
 
   const renderNutritionSection = () => (
     <View style={styles.nutritionSection}>
-      <Text style={styles.nutritionTitle}>Today Meal Nutritions</Text>
+      <Text style={styles.nutritionTitle}>Dinh dưỡng hôm nay</Text>
       
       <View style={styles.nutritionItems}>
         {Object.entries(todayNutrition).map(([key, nutrition]) => (
@@ -180,7 +155,7 @@ export default function MenuDetailScreen({ navigation }) {
               <Text style={styles.nutritionIconText}>{nutrition.icon}</Text>
             </View>
             <View style={styles.nutritionInfo}>
-              <Text style={styles.nutritionValue}>{nutrition.value} {nutrition.unit}</Text>
+              <Text style={styles.nutritionValue}><Text style={{fontWeight:'bold'}}>{nutrition.label}: </Text>{nutrition.value} {nutrition.unit}</Text>
               <View style={styles.progressBarContainer}>
                 <View 
                   style={[
@@ -195,7 +170,7 @@ export default function MenuDetailScreen({ navigation }) {
       </View>
     </View>
   );
-
+  
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -232,7 +207,7 @@ export default function MenuDetailScreen({ navigation }) {
           const active = idx === selectedDateIndex;
           return (
             <TouchableOpacity
-              key={`${d.label}-${d.date}`}
+              key={`${idx}-${d.dateObj.toISOString().split('T')[0]}`}
               style={[styles.dayPill, active && styles.dayPillActive]}
               onPress={() => {
                 setSelectedDateIndex(idx);
@@ -248,14 +223,7 @@ export default function MenuDetailScreen({ navigation }) {
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Meals for selected date */}
-        {currentMeals.length > 0 ? (
-          currentMeals.map(renderMealSection)
-        ) : (
-          <View style={styles.noMealsContainer}>
-            <Text style={styles.noMealsText}>Không có món ăn nào cho ngày này</Text>
-          </View>
-        )}
+        {renderMealSection()}
 
         {/* Nutrition section */}
         {renderNutritionSection()}
@@ -355,7 +323,7 @@ const styles = StyleSheet.create({
   },
   daysRow: {
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4, // tăng lên chút theo ScheduleScreen thay vì 2
   },
   dayPill: {
     width: 70,
@@ -387,11 +355,13 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 0, // Để meal dính sát body dưới chọn ngày
   },
   
   // Meal sections
   mealSection: {
     marginBottom: 20,
+    marginTop: 0, // bỏ toàn bộ marginTop, cho dính sát
   },
   mealHeader: {
     marginBottom: 12,
@@ -556,7 +526,7 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   pickerItem: {
-    paddingVertical: 10,
+    paddingVertical: 2,
     alignItems: 'center',
     borderRadius: 10,
   },
@@ -596,6 +566,6 @@ const styles = StyleSheet.create({
     fontWeight: FONTS.semiBold,
   },
   bottomSpacing: {
-    height: 100,
+    height: 10,
   },
 });

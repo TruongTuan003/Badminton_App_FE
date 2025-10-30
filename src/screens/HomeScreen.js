@@ -2,13 +2,16 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { userAPI } from '../services/api';
+import { userAPI, scheduleAPI, mealScheduleAPI } from '../services/api';
 import { calculateBMI } from '../utils/bmiCalculator';
 
 export default function HomeScreen({ navigation, route }) {
   // Lấy thông tin người dùng từ API
   const [userData, setUserData] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState('home');
+  const [todaySchedule, setTodaySchedule] = React.useState(null);
+  const [todayMeals, setTodayMeals] = React.useState([]);
+  const [mealSummary, setMealSummary] = React.useState({ calories: 0, mealType: '' });
 
   React.useEffect(() => {
     const fetchUserData = async () => {
@@ -27,6 +30,59 @@ export default function HomeScreen({ navigation, route }) {
     });
     return unsubscribe;
   }, [navigation]);
+
+  React.useEffect(() => {
+    // Lấy lịch tập hôm nay
+    const fetchTodayData = async () => {
+      try {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+        // Lấy userId từ profile nếu cần, hoặc backend lấy trong token
+        const userDataRes = await userAPI.getProfile();
+        const userId = userDataRes.data?._id || userDataRes.data?.id;
+        const schRes = await scheduleAPI.getByUserAndDate(userId, dateStr);
+        if (schRes.data && (Array.isArray(schRes.data.scheduleDetails) || schRes.data.scheduleDetails)) {
+          // Có thể schRes.data là 1 obj (Schedule), scheduleDetails chứa list bài tập
+          // Lấy lịch tập/bài tập đầu tiên trong schedule hôm nay
+          setTodaySchedule(Array.isArray(schRes.data.scheduleDetails) ? schRes.data.scheduleDetails[0] : schRes.data.scheduleDetails);
+        }
+        // Lấy thực đơn hôm nay
+        const mealRes = await mealScheduleAPI.getByDate(dateStr);
+        setTodayMeals(mealRes.data || []);
+        // Tính tổng calories và loại bữa gần nhất cho meal card
+        let sumCalories = 0;
+        mealRes.data.forEach((item) => {
+          sumCalories += (item.mealId?.calories) ? Number(item.mealId.calories) : 0;
+        });
+        // Loại bữa gần nhất
+        let current = new Date();
+        let nearMeal = '';
+        let minDiff = 24*60;
+        mealRes.data.forEach(item => {
+          let hourMin = item.time || '';
+          if (/^\d{1,2}:\d{2}$/.test(hourMin)) {
+            const [h, m] = hourMin.split(':').map(Number);
+            const mealDate = new Date();
+            mealDate.setHours(h, m, 0, 0);
+            const diff = (mealDate - current) / 60000;
+            if (diff >= 0 && diff < minDiff) {
+              minDiff = diff;
+              nearMeal = item.meal_type || item.mealId?.meal_type || '';
+            }
+          }
+        });
+        setMealSummary({ calories: sumCalories, mealType: nearMeal });
+      } catch(e) {
+        setTodaySchedule(null);
+        setTodayMeals([]);
+        setMealSummary({ calories: 0, mealType: '' })
+      }
+    };
+    fetchTodayData();
+  }, []);
 
   // Lấy chiều cao và cân nặng từ userData hoặc sử dụng giá trị mặc định
   const fullName = userData?.name || 'Người dùng';
@@ -116,20 +172,26 @@ const programSubtitle = goalNames.length
               style={styles.pillButton} 
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               activeOpacity={0.7}
-              onPress={() => {
-                navigation.navigate('Schedule');
-              }}
+              onPress={() => navigation.navigate('Schedule')}
             >
               <Text style={styles.pillButtonText}>Chi tiết</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.scheduleRow}>
-            <Text style={styles.scheduleName}>Smash cơ bản</Text>
-            <Text style={styles.scheduleTime}>7:00 AM</Text>
+            <Text style={styles.scheduleName}>{todaySchedule?.workoutName || todaySchedule?.name || 'Chưa có bài tập'}</Text>
+            <Text style={styles.scheduleTime}>{todaySchedule?.startTime || todaySchedule?.time || '--:--'}</Text>
           </View>
           <View style={styles.scheduleFooter}>
             <Text style={styles.scheduleLabel}>Hôm nay</Text>
-            <TouchableOpacity style={[styles.pillButton, styles.pillSuccess]}>
+            <TouchableOpacity
+              style={[styles.pillButton, styles.pillSuccess]}
+              onPress={() => {
+                if (todaySchedule?.workoutId || todaySchedule?._id) {
+                  navigation.navigate('TrainingDetail', { id: todaySchedule.workoutId || todaySchedule._id });
+                }
+              }}
+              disabled={!todaySchedule?.workoutId && !todaySchedule?._id}
+            >
               <Text style={[styles.pillButtonText, styles.pillSuccessText]}>Bắt đầu ngay</Text>
             </TouchableOpacity>
           </View>
@@ -147,13 +209,13 @@ const programSubtitle = goalNames.length
             </TouchableOpacity>
           </View>
           <View style={styles.mealRow}>
-            <Text style={styles.mealCaloriesLeft}>1450/2500</Text>
+            <Text style={styles.mealCaloriesLeft}>{mealSummary.calories}/2500</Text>
             <Text style={styles.mealCaloriesLabel}>Calories</Text>
           </View>
           <View style={styles.progressBar}>
-            <View style={styles.progressFill} />
+            <View style={[styles.progressFill, {width: `${Math.min(mealSummary.calories/2500*100, 100)}%`}]} />
           </View>
-          <Text style={styles.mealFooter}>Bữa sáng</Text>
+          <Text style={styles.mealFooter}>{mealSummary.mealType || '...'}</Text>
         </View>
 
         {/* Progress */}

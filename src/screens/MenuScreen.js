@@ -11,6 +11,8 @@ import {
   View
 } from 'react-native';
 import { COLORS, FONTS, SHADOWS } from '../styles/commonStyles';
+import { mealAPI, mealScheduleAPI } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -19,46 +21,153 @@ export default function MenuScreen({ navigation }) {
   const [selectedMeal, setSelectedMeal] = useState('Bữa sáng');
   const [periodModalVisible, setPeriodModalVisible] = useState(false);
   const [mealModalVisible, setMealModalVisible] = useState(false);
+  const [meals, setMeals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [todayMeals, setTodayMeals] = useState([]);
+  const [loadingTodayMeals, setLoadingTodayMeals] = useState(true);
+  const [errorTodayMeals, setErrorTodayMeals] = useState(null);
+
+  // TÍNH nutritionData cho biểu đồ: calories từng ngày trong tuần (7 ngày gần nhất)
+  const [nutritionData, setNutritionData] = React.useState([]);
+  const [nutritionStats, setNutritionStats] = React.useState([]);
+  const [totalCalories, setTotalCalories] = React.useState(0);
+
+  React.useEffect(() => {
+    const fetchMeals = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await mealAPI.getAllMeals();
+        setMeals(res.data);
+      } catch (err) {
+        setError('Không thể tải danh sách món ăn');
+        setMeals([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMeals();
+  }, []);
+
+  React.useEffect(() => {
+    const fetchTodayMeals = async () => {
+      setLoadingTodayMeals(true);
+      setErrorTodayMeals(null);
+      try {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+        const res = await mealScheduleAPI.getByDate(dateStr);
+        setTodayMeals(res.data || []);
+
+        // --- Thêm tự động chọn bữa sắp tới dùng state setSelectedMeal ---
+        if (res.data && res.data.length > 0) {
+          const now = new Date();
+          // Sắp xếp lấy meal đầu có giờ lớn hơn hiện tại, ưu tiên loại bữa
+          let nextMeal = null;
+          let earliestDiff = 24 * 60;
+          res.data.forEach((meal) => {
+            let hourMin = meal.time || '';
+            // Format chuẩn: hh:mm, ví dụ 11:00
+            if (/^\d{1,2}:\d{2}$/.test(hourMin)) {
+              const [h, m] = hourMin.split(':').map(Number);
+              const mealDate = new Date();
+              mealDate.setHours(h, m, 0, 0);
+              const diff = (mealDate - now) / 60000; // phút tới meal
+              if (diff >= 0 && diff < earliestDiff) { // meal tương lai gần nhất
+                earliestDiff = diff;
+                nextMeal = meal;
+              }
+            }
+          });
+          // Nếu có meal hợp lệ, tự chọn loại bữa, không thì giữ nguyên (hoặc Tất cả)
+          if (nextMeal) {
+            setSelectedMeal(nextMeal.meal_type || nextMeal.mealType || nextMeal.mealId?.meal_type || nextMeal.mealId?.mealType || '');
+          } else {
+            setSelectedMeal('');
+          }
+        }
+        // --- end chọn bữa gần nhất ---
+      } catch (err) {
+        setErrorTodayMeals('Không thể tải thực đơn hôm nay');
+        setTodayMeals([]);
+      } finally {
+        setLoadingTodayMeals(false);
+      }
+    };
+    fetchTodayMeals();
+  }, []);
+
+  React.useEffect(() => {
+    // Chỉ tính khi todayMeals thay đổi
+    // Xác định ngày hôm nay và 6 ngày trước đó
+    const daysOfWeek = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const today = new Date();
+    const weekDates = [];
+    for(let i=6; i>=0; --i) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      weekDates.push(new Date(d));
+    }
+    // Dữ liệu mealsCookie là meals từng ngày tương ứng (cần fetch từ backend lịch sử, tạm thời chỉ tính hôm nay nếu không có API lấy nhiều ngày)
+    // => Ở bản này chỉ lấy hôm nay làm mẫu cho tất cả 7 ngày
+    // Future: map thêm API lấy mealSchedule tuần.
+    // TÍNH cho hôm nay
+    let sumCalories=0, sumProteins=0, sumFats=0, sumCarbs=0;
+    todayMeals.forEach(meal => {
+      const m = meal.mealId || {};
+      sumCalories += m.calories ? Number(m.calories) : 0;
+      sumProteins += m.protein ? Number(m.protein) : 0;
+      sumFats += m.fat ? Number(m.fat) : 0;
+      sumCarbs += m.carbs ? Number(m.carbs) : 0;
+    });
+    // Biểu đồ dinh dưỡng theo tuần (tạm thời chỉ lặp chính nó cho đủ 7 cột)
+    const nutritionChart = weekDates.map((dateObj,i) => ({
+        day: daysOfWeek[dateObj.getDay()],
+        value: sumCalories,
+        active: i===6
+    }));
+    setNutritionData(nutritionChart);
+    // Tính các stats
+    setNutritionStats([
+      { name: 'Năng lượng', value: sumCalories+' kcal', trend: '' },
+      { name: 'Đạm', value: sumProteins+' g', trend: '' },
+      { name: 'Chất béo', value: sumFats+' g', trend: '' },
+      { name: 'Tinh bột', value: sumCarbs+' g', trend: '' },
+    ]);
+    // --- Tổng calories hôm nay ---
+    setTotalCalories(sumCalories);
+  }, [todayMeals]);
 
   const periodOptions = ['Daily', 'Weekly', 'Monthly'];
   const mealOptions = ['Bữa sáng', 'Bữa trưa', 'Bữa tối', 'Bữa phụ'];
 
   // Dữ liệu biểu đồ dinh dưỡng
-  const nutritionData = [
-    { day: 'Sun', value: 65 },
-    { day: 'Mon', value: 78 },
-    { day: 'Tue', value: 82 },
-    { day: 'Wed', value: 75 },
-    { day: 'Thu', value: 88, active: true },
-    { day: 'Fri', value: 72 },
-    { day: 'Sat', value: 80 },
-  ];
+  // const nutritionData = [
+  //   { day: 'Sun', value: 65 },
+  //   { day: 'Mon', value: 78 },
+  //   { day: 'Tue', value: 82 },
+  //   { day: 'Wed', value: 75 },
+  //   { day: 'Thu', value: 88, active: true },
+  //   { day: 'Fri', value: 72 },
+  //   { day: 'Sat', value: 80 },
+  // ];
 
   // Dữ liệu thống kê dinh dưỡng
-  const nutritionStats = [
-    { name: 'Calories', value: '82%', trend: '+' },
-    { name: 'Fibre', value: '88%', trend: '+' },
-    { name: 'Sugar', value: '39%', trend: '+' },
-    { name: 'Fats', value: '42%', trend: '+' },
-  ];
+  // const nutritionStats = [
+  //   { name: 'Calories', value: '82%', trend: '+' },
+  //   { name: 'Fibre', value: '88%', trend: '+' },
+  //   { name: 'Sugar', value: '39%', trend: '+' },
+  //   { name: 'Fats', value: '42%', trend: '+' },
+  // ];
 
-  // Dữ liệu món ăn hôm nay
-  const todayMeals = [
-    {
-      id: 1,
-      name: 'Salmon Nigiri',
-      time: 'Today | 7am',
-      icon: '🍣',
-      hasNotification: true,
-    },
-    {
-      id: 2,
-      name: 'Lowfat Milk',
-      time: 'Today | 8am',
-      icon: '🥛',
-      hasNotification: false,
-    },
-  ];
+  // Dữ liệu món ăn hôm nay (thay thế bằng API)
+  // const todayMeals = [...];
+  // Sử dụng state meals:
+  // const todayMeals = meals; // bỏ đoạn này
 
   const renderNutritionChart = () => (
     <View style={styles.chartContainer}>
@@ -107,6 +216,7 @@ export default function MenuScreen({ navigation }) {
             </View>
           ))}
         </View>
+        <Text style={{fontWeight:'bold',fontSize:15,marginTop:8,alignSelf:'center'}}>Tổng calories hôm nay: {totalCalories} kcal</Text>
       </View>
     </View>
   );
@@ -123,41 +233,64 @@ export default function MenuScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const renderTodayMeals = () => (
-    <View style={styles.mealsSection}>
-      <View style={styles.mealsHeader}>
-        <Text style={styles.mealsTitle}>Món ăn hôm nay</Text>
-        <TouchableOpacity 
-          style={styles.dropdownButton}
-          onPress={() => setMealModalVisible(true)}
-        >
-          <Text style={styles.dropdownText}>{selectedMeal}</Text>
-          <Feather name="chevron-down" size={16} color={COLORS.gray} />
-        </TouchableOpacity>
-      </View>
+  const renderTodayMeals = () => {
+    // Lọc theo selectedMeal nếu có
+    let filteredMeals = todayMeals;
+    if (selectedMeal && todayMeals && todayMeals.length && selectedMeal !== '') {
+      filteredMeals = todayMeals.filter(meal => {
+        const type = meal.meal_type || meal.mealType || meal.mealId?.meal_type || meal.mealId?.mealType;
+        return type === selectedMeal;
+      });
+    }
+    return (
+      <View style={styles.mealsSection}>
+        <View style={styles.mealsHeader}>
+          <Text style={styles.mealsTitle}>Món ăn hôm nay</Text>
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => setMealModalVisible(true)}
+          >
+            <Text style={styles.dropdownText}>{selectedMeal || 'Tất cả'}</Text>
+            <Feather name="chevron-down" size={16} color={COLORS.gray} />
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.mealsList}>
-        {todayMeals.map((meal) => (
-          <View key={meal.id} style={styles.mealCard}>
-            <View style={styles.mealIcon}>
-              <Text style={styles.mealIconText}>{meal.icon}</Text>
+        <View style={styles.mealsList}>
+          {loadingTodayMeals ? (
+            <Text>Đang tải...</Text>
+          ) : errorTodayMeals ? (
+            <Text style={{ color: 'red' }}>{errorTodayMeals}</Text>
+          ) : filteredMeals.length === 0 ? (
+            <Text>Không có món ăn hôm nay!</Text>
+          ) : filteredMeals.map((meal) => (
+            <View key={meal._id || meal.id} style={styles.mealCard}>
+              <View style={styles.mealIcon}>
+                <Text style={styles.mealIconText}>{meal.mealId?.icon || '🍽️'}</Text>
+              </View>
+              <View style={styles.mealInfo}>
+                <Text style={styles.mealName}>{meal.mealId?.name}</Text>
+                {/* Hiển thị loại bữa */}
+                {(meal.meal_type || meal.mealType || meal.mealId?.meal_type || meal.mealId?.mealType) && (
+                  <Text style={styles.mealTime}>Bữa: {meal.meal_type || meal.mealType || meal.mealId?.meal_type || meal.mealId?.mealType}{meal.time ? ' - ' + meal.time : ''}</Text>
+                )}
+                {/* Thêm mô tả nếu có */}
+                {meal.mealId?.description && (
+                  <Text style={styles.mealDesc}>{meal.mealId.description}</Text>
+                )}
+              </View>
+              <TouchableOpacity style={styles.notificationButton}>
+                <Ionicons
+                  name={meal.hasNotification ? "notifications" : "notifications-off"}
+                  size={20}
+                  color={meal.hasNotification ? COLORS.primary : COLORS.lightGray}
+                />
+              </TouchableOpacity>
             </View>
-            <View style={styles.mealInfo}>
-              <Text style={styles.mealName}>{meal.name}</Text>
-              <Text style={styles.mealTime}>{meal.time}</Text>
-            </View>
-            <TouchableOpacity style={styles.notificationButton}>
-              <Ionicons 
-                name={meal.hasNotification ? "notifications" : "notifications-off"} 
-                size={20} 
-                color={meal.hasNotification ? COLORS.primary : COLORS.lightGray} 
-              />
-            </TouchableOpacity>
-          </View>
-        ))}
+          ))}
+        </View>
       </View>
-    </View>
-  );
+    );
+  }
 
   const renderPeriodModal = () => (
     <Modal
@@ -278,7 +411,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 10,
+    paddingBottom: 20,
   },
   headerTitle: {
     fontSize: 18,
@@ -314,63 +447,67 @@ const styles = StyleSheet.create({
   },
   
   // Chart styles
-  chartContainer: {
-    marginBottom: 20,
-  },
-  chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  chartTitle: {
-    fontSize: 16,
-    fontWeight: FONTS.bold,
-    color: COLORS.black,
-  },
-  dropdownButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.inputBackground,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  dropdownText: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginRight: 4,
-  },
-  chartArea: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    ...SHADOWS.small,
-  },
-  chartBars: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    height: 150,
-    marginBottom: 20,
-  },
-  barContainer: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  bar: {
-    width: 20,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  barLabel: {
-    fontSize: 12,
-    color: COLORS.gray,
-  },
-  barLabelActive: {
-    color: COLORS.primary,
-    fontWeight: FONTS.semiBold,
-  },
+chartContainer: {
+  marginBottom: 20,
+},
+chartHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 12,    // giảm từ 15 -> 12
+},
+chartTitle: {
+  fontSize: 16,
+  fontWeight: FONTS.bold,
+  color: COLORS.black,
+  marginBottom: 0,      // loại bỏ nếu đang có
+},
+dropdownButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: COLORS.inputBackground,
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  borderRadius: 20,
+},
+dropdownText: {
+  fontSize: 12,
+  color: COLORS.gray,
+  marginRight: 4,
+},
+chartArea: {
+  backgroundColor: COLORS.white,
+  borderRadius: 16,
+  padding: 16,
+  paddingTop: 32,         // Thêm PADDING TOP lớn cho phía trên bar
+  ...SHADOWS.small,
+},
+chartBars: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'flex-end',
+  height: 90,             // giảm từ 150 -> 90
+  marginBottom: 6,        // giảm từ 20 -> 6
+  marginTop: 0,           // loại bỏ mọi marginTop để sát phần trên
+},
+barContainer: {
+  alignItems: 'center',
+  flex: 1,
+},
+bar: {
+  width: 20,
+  borderRadius: 10,
+  marginBottom: 0,        // sát đáy luôn, không thừa
+},
+barLabel: {
+  fontSize: 12,
+  color: COLORS.gray,
+  marginTop: 10,         // tăng lên, tách label khỏi đáy cột
+},
+barLabelActive: {
+  color: COLORS.primary,
+  fontWeight: FONTS.semiBold,
+},
   nutritionStats: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -480,6 +617,11 @@ const styles = StyleSheet.create({
   mealTime: {
     fontSize: 12,
     color: COLORS.gray,
+  },
+  mealDesc: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginBottom: 2,
   },
   notificationButton: {
     padding: 8,

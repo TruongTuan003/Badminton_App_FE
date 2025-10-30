@@ -9,17 +9,39 @@ import {
   View
 } from 'react-native';
 import { COLORS, FONTS, SHADOWS } from '../styles/commonStyles';
+import { mealAPI } from '../services/api';
 
 export default function FoodScreen({ navigation }) {
   const [searchText, setSearchText] = useState('');
+  const [meals, setMeals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedMealType, setSelectedMealType] = useState('');
 
-  // Dữ liệu categories
+  // Nhóm các loại bữa ăn
   const categories = [
-    { id: 1, name: 'Salad', icon: '🥗', color: '#E3F2FD' },
-    { id: 2, name: 'Cake', icon: '🍰', color: '#F3E5F5' },
-    { id: 3, name: 'Pie', icon: '🥧', color: '#E8F5E8' },
-    { id: 4, name: 'Smoothies', icon: '🥤', color: '#FFF3E0' },
+    { key: '', name: 'Tất cả', icon: '🍽️', color: '#E3F2FD' },
+    { key: 'Bữa sáng', name: 'Bữa sáng', icon: '🍳', color: '#FFE0E6' },
+    { key: 'Bữa trưa', name: 'Bữa trưa', icon: '🍚', color: '#F3E5F5' },
+    { key: 'Bữa tối', name: 'Bữa tối', icon: '🌙', color: '#FFF3E0' },
+    { key: 'Bữa phụ', name: 'Bữa phụ', icon: '🥤', color: '#E8F5E8' },
   ];
+
+  React.useEffect(() => {
+    const fetchMeals = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await mealAPI.getAllMeals();
+        setMeals(res.data);
+      } catch (err) {
+        setError('Không thể tải danh sách món ăn');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMeals();
+  }, []);
 
   // Dữ liệu danh sách món ăn
   const foodItems = [
@@ -64,17 +86,25 @@ export default function FoodScreen({ navigation }) {
     </View>
   );
 
+  // Render lại Category thành loại bữa ăn
   const renderCategories = () => (
     <View style={styles.categoriesSection}>
-      <Text style={styles.sectionTitle}>Category</Text>
-      <ScrollView 
-        horizontal 
+      <Text style={styles.sectionTitle}>Loại bữa ăn</Text>
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoriesContainer}
       >
         {categories.map((category) => (
-          <TouchableOpacity key={category.id} style={styles.categoryCard}>
-            <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
+          <TouchableOpacity
+            key={category.key}
+            style={[
+              styles.categoryCard,
+              selectedMealType === category.key && { borderColor: COLORS.primary, borderWidth: 2 }
+            ]}
+            onPress={() => setSelectedMealType(category.key)}
+          >
+            <View style={[styles.categoryIcon, { backgroundColor: category.color }]}> 
               <Text style={styles.categoryIconText}>{category.icon}</Text>
             </View>
             <Text style={styles.categoryName}>{category.name}</Text>
@@ -84,22 +114,46 @@ export default function FoodScreen({ navigation }) {
     </View>
   );
 
+  // Filter foodList theo loại bữa ăn + từ khóa tìm kiếm
   const renderFoodList = () => (
     <View style={styles.foodListSection}>
       <Text style={styles.sectionTitle}>Danh sách món ăn</Text>
       <View style={styles.foodList}>
-        {foodItems.map((item) => (
-          <TouchableOpacity key={item.id} style={styles.foodItem}>
-            <View style={[styles.foodItemIcon, { backgroundColor: item.iconBg }]}>
-              <Text style={styles.foodItemIconText}>{item.icon}</Text>
-            </View>
-            <View style={styles.foodItemContent}>
-              <Text style={styles.foodItemTitle}>{item.title}</Text>
-              <Text style={styles.foodItemSubtitle}>{item.subtitle}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
-          </TouchableOpacity>
-        ))}
+        {loading ? (
+          <Text>Đang tải...</Text>
+        ) : error ? (
+          <Text style={{ color: 'red' }}>{error}</Text>
+        ) : (() => {
+            let filtered = meals;
+            if (selectedMealType) {
+              filtered = filtered.filter(meal => (meal.meal_type || meal.mealType) && (meal.meal_type||meal.mealType) === selectedMealType);
+            }
+            if (searchText.trim()) {
+              filtered = filtered.filter(meal => meal.name?.toLowerCase().includes(searchText.toLowerCase()));
+            }
+            if (filtered.length === 0) return <Text>Không có món ăn nào.</Text>;
+            return filtered.map((meal) => (
+              <TouchableOpacity key={meal._id || meal.id} style={styles.foodItem}>
+                <View style={styles.foodItemIcon}>
+                  <Text style={styles.foodItemIconText}>{meal.icon || '🍽️'}</Text>
+                </View>
+                <View style={styles.foodItemContent}>
+                  <Text style={styles.foodItemTitle}>{meal.name}</Text>
+                  {/* Hiển thị loại bữa */}
+                  {(meal.meal_type || meal.mealType) && (
+                    <Text style={styles.foodItemSubtitle}>Bữa: {meal.meal_type || meal.mealType}</Text>
+                  )}
+                  {/* Hiển thị mô tả nếu có */}
+                  {meal.description && (
+                    <Text style={styles.foodItemDescription}>{meal.description}</Text>
+                  )}
+                  {/* Hiển thị calories nếu có */}
+                  {meal.calories && (<Text style={styles.foodItemSubtitle}>{meal.calories} kcal</Text>)}
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
+              </TouchableOpacity>
+            ));
+          })()}
       </View>
     </View>
   );
@@ -203,6 +257,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
     width: 80,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 10,
   },
   categoryIcon: {
     width: 60,
@@ -260,5 +318,10 @@ const styles = StyleSheet.create({
   foodItemSubtitle: {
     fontSize: 12,
     color: COLORS.gray,
+  },
+  foodItemDescription: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginBottom: 2,
   },
 });

@@ -99,7 +99,7 @@ export default function ScheduleScreen({ navigation }) {
           const active = idx === selectedDateIndex;
           return (
             <TouchableOpacity
-              key={`${d.label}-${d.date}`}
+              key={`${idx}-${d.dateObj.toISOString().split('T')[0]}`}
               style={[styles.dayPill, active && styles.dayPillActive]}
               onPress={() => {
                 setSelectedDateIndex(idx);
@@ -463,5 +463,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
 

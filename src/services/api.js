@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 
-const API_URL = 'http://192.168.1.66:3000/api'; 
+const API_URL = 'http://192.168.33.83:3000/api'; // Changed to localhost for testing
 
 
 
@@ -43,6 +43,22 @@ export const workoutAPI = {
     getAll: () => api.get("/trainings"),
      getByGoal: (goal) => api.get(`/trainings/goal/${encodeURIComponent(goal)}`),
      getById: (id) => api.get(`/trainings/${id}`),
+};
+
+export const scheduleAPI = {
+  getByUserAndDate: (userId, date) => api.get(`/schedules/user/${userId}/date/${date}`),
+  getDetails: (scheduleId) => api.get(`/schedules/${scheduleId}`), // dùng route GET /:id
+  create: (data) => api.post('/schedules', data),
+};
+
+export const mealAPI = {
+  getAllMeals: () => api.get('/meals'),
+  getMealsByGoal: (goal) => api.get(`/meals/goal/${encodeURIComponent(goal)}`),
+  getMealById: (id) => api.get(`/meals/${id}`),
+};
+
+export const mealScheduleAPI = {
+  getByDate: (date) => api.get(`/meal-schedules/${date}`),
 };
 
 export default api;

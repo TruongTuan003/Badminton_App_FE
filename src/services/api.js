@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 
-const API_URL = 'http://192.168.33.83:3000/api'; // Changed to localhost for testing
+const API_URL = 'http://192.168.0.109:3000/api'; // Changed to localhost for testing
 
 
 
@@ -46,7 +46,7 @@ export const workoutAPI = {
 };
 
 export const scheduleAPI = {
-  getByUserAndDate: (userId, date) => api.get(`/schedules/user/${userId}/date/${date}`),
+  getByUserAndDate: (date) => api.get(`/schedules/date/${date}`),
   getDetails: (scheduleId) => api.get(`/schedules/${scheduleId}`), // dùng route GET /:id
   create: (data) => api.post('/schedules', data),
 };

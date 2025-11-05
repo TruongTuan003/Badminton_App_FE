@@ -3,19 +3,25 @@ import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { workoutAPI } from "../services/api";
+import { trainingLogAPI, workoutAPI } from "../services/api";
 
 export default function TrainingDetailScreen({ route, navigation }) {
   const { id } = route.params;
   const [training, setTraining] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [selectedFeeling, setSelectedFeeling] = useState("");
+  const [note, setNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const [videoUri, setVideoUri] = useState(null);
   const player = useVideoPlayer(videoUri || "", (player) => {
@@ -46,7 +52,30 @@ export default function TrainingDetailScreen({ route, navigation }) {
     return <ActivityIndicator style={{ marginTop: 40 }} size="large" />;
 
   const handleComplete = () => {
-    navigation.goBack();
+    setFeedbackVisible(true);
+  };
+
+  const handleCancelFeedback = () => {
+    setFeedbackVisible(false);
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!selectedFeeling) return;
+    try {
+      setSubmitting(true);
+      await trainingLogAPI.createLog({
+        workoutId: id,
+        feeling: selectedFeeling,
+        note,
+      });
+      setFeedbackVisible(false);
+      navigation.goBack();
+    } catch (e) {
+      setFeedbackVisible(false);
+      navigation.goBack();
+    } finally {
+      setSubmitting(false);
+    }
   };
   return (
     <View style={styles.container}>
@@ -108,6 +137,55 @@ export default function TrainingDetailScreen({ route, navigation }) {
           <Text style={styles.completeButtonText}>Hoàn thành</Text>
         </TouchableOpacity>
       </ScrollView>
+      {/* Feedback Modal */}
+      <Modal transparent visible={feedbackVisible} animationType="fade" onRequestClose={handleCancelFeedback}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Cảm nhận sau buổi tập</Text>
+            <Text style={styles.modalLabel}>Bạn cảm thấy thế nào?</Text>
+            <View style={styles.feelingsRow}>
+              {[
+                { key: "Tốt", label: "Tốt" },
+                { key: "Bình thường", label: "Bình thường" },
+                { key: "Mệt", label: "Mệt" },
+              ].map((item) => {
+                const active = selectedFeeling === item.key;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={[styles.feelingPill, active && styles.feelingPillActive]}
+                    onPress={() => setSelectedFeeling(item.key)}
+                  >
+                    <Text style={[styles.feelingPillText, active && styles.feelingPillTextActive]}>{item.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={[styles.modalLabel, { marginTop: 14 }]}>Ghi chú</Text>
+            <TextInput
+              style={styles.noteInput}
+              placeholder="Viết vài dòng cảm nhận..."
+              placeholderTextColor="#7B6F72"
+              value={note}
+              onChangeText={setNote}
+              multiline
+              numberOfLines={4}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalButtonGhost} onPress={handleCancelFeedback}>
+                <Text style={styles.modalButtonGhostText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, (!selectedFeeling || submitting) && { opacity: 0.6 }]}
+                onPress={handleSubmitFeedback}
+                disabled={!selectedFeeling || submitting}
+              >
+                <Text style={styles.modalButtonText}>{submitting ? 'Đang lưu...' : 'Lưu'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -215,5 +293,97 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#ADA4A5",
     fontWeight: "500",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  modalCard: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1D1617",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1D1617",
+    marginBottom: 8,
+  },
+  feelingsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  feelingPill: {
+    flex: 1,
+    paddingVertical: 10,
+    marginHorizontal: 4,
+    borderRadius: 24,
+    backgroundColor: "#F7F8F8",
+    borderWidth: 1,
+    borderColor: "#E1E5E9",
+    alignItems: "center",
+  },
+  feelingPillActive: {
+    backgroundColor: "#92A3FD",
+    borderColor: "#92A3FD",
+  },
+  feelingPillText: {
+    color: "#1D1617",
+    fontWeight: "600",
+  },
+  feelingPillTextActive: {
+    color: "#FFFFFF",
+  },
+  noteInput: {
+    minHeight: 90,
+    borderWidth: 1,
+    borderColor: "#E1E5E9",
+    backgroundColor: "#F7F8F8",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: "#1D1617",
+    textAlignVertical: "top",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 14,
+  },
+  modalButton: {
+    backgroundColor: "#92A3FD",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  modalButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  modalButtonGhost: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E1E5E9",
+    backgroundColor: "#F7F8F8",
+  },
+  modalButtonGhostText: {
+    color: "#1D1617",
+    fontWeight: "600",
   },
 });

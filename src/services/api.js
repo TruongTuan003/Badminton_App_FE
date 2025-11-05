@@ -68,4 +68,9 @@ export const mealScheduleAPI = {
   create: (data) => api.post('/meal-schedules', data),
 };
 
+export const trainingLogAPI = {
+  getLogByUser: () => api.get('/training-logs'),
+  createLog: (data) => api.post('/training-logs', data),
+};
+
 export default api;

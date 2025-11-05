@@ -251,10 +251,15 @@ export default function TrainingListScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 15 },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
-  backButton: { marginRight: 10, padding: 6, borderRadius: 10, backgroundColor: "#F4F4F4" },
-  title: { fontSize: 22, fontWeight: "700", color: "#1D1617" },
+  container: { flex: 1, backgroundColor: "#FFFFFF", padding: 15 },
+  header: { flexDirection: "row", alignItems: "center", marginBottom: 15, paddingTop: 50 },
+  backButton: {
+    marginRight: 10,
+    padding: 6,
+    borderRadius: 10,
+    backgroundColor: "#F4F4F4",
+  },
+  title: { fontSize: 23, fontWeight: "700", color: "#1D1617" },
   item: {
     flexDirection: "row",
     backgroundColor: "#EEF2FF",

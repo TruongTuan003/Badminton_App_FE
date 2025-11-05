@@ -73,19 +73,34 @@ export default function UserScreen({ navigation, route }) {
 
 
   const handleLogout = () => {
-
-    setUserData(null);
-
-    Alert.alert('Đăng xuất thành công', 'Bạn đã đăng xuất thành công');
-
-    setTimeout(() => {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Auth' }],
-      });
-    }, 2000);
+    Alert.alert(
+      "Xác nhận đăng xuất",
+      "Bạn có chắc chắn muốn đăng xuất không?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Đăng xuất",
+          style: "destructive", 
+          onPress: () => {
+            setUserData(null);
+  
+            Alert.alert("Đăng xuất thành công", "Bạn đã đăng xuất thành công");
+  
+            setTimeout(() => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Auth" }],
+              });
+            }, 2000);
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
-
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>

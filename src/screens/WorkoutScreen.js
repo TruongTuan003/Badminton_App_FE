@@ -37,7 +37,6 @@ export default function WorkoutScreen({ navigation }) {
           setTodaySchedule(null);
         }
       } catch (error) {
-        console.error("[WorkoutScreen] fetchTodaySchedule error:", error.message);
         setTodaySchedule(null);
       } finally {
         setLoading(false);

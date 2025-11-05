@@ -258,8 +258,8 @@ export default function UserScreen({ navigation, route }) {
         <TouchableOpacity style={styles.navButton}>
           <Feather name="search" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialCommunityIcons name="camera-outline" size={24} color="#ADA4A5" />
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Food')}>
+          <MaterialCommunityIcons name="food" size={24} color="#ADA4A5" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
           <Ionicons name="person" size={24} color="#C58BF2" />

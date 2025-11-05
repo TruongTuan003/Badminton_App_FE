@@ -66,6 +66,7 @@ export const mealAPI = {
 export const mealScheduleAPI = {
   getByDate: (date) => api.get(`/meal-schedules/${date}`),
   create: (data) => api.post('/meal-schedules', data),
+  deleteById: (id) => api.delete(`/meal-schedules/${id}`),
 };
 
 export const trainingLogAPI = {

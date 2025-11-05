@@ -1,14 +1,26 @@
-import { Feather, Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { mealScheduleAPI } from '../services/api';
-import { COLORS, FONTS, SHADOWS } from '../styles/commonStyles';
+import { Feather, Ionicons } from "@expo/vector-icons";
+import React from "react";
+import {
+  Alert,
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { mealScheduleAPI } from "../services/api";
+import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
 
 export default function MenuDetailScreen({ navigation }) {
   const today = new Date();
   const [currentYear, setCurrentYear] = React.useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = React.useState(today.getMonth()); // 0-11
-  const [selectedDate, setSelectedDate] = React.useState(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+  const [selectedDate, setSelectedDate] = React.useState(
+    new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  );
   const [selectedDateIndex, setSelectedDateIndex] = React.useState(3);
   const [pickerVisible, setPickerVisible] = React.useState(false);
   const [meals, setMeals] = React.useState([]);
@@ -21,13 +33,17 @@ export default function MenuDetailScreen({ navigation }) {
       setError(null);
       try {
         const yyyy = selectedDate.getFullYear();
-        const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(selectedDate.getDate()).padStart(2, '0');
+        const mm = String(selectedDate.getMonth() + 1).padStart(2, "0");
+        const dd = String(selectedDate.getDate()).padStart(2, "0");
         const dateStr = `${yyyy}-${mm}-${dd}`;
         const res = await mealScheduleAPI.getByDate(dateStr);
         setMeals(res.data || []);
       } catch (err) {
-        setError(err?.response?.data?.message || err.message || 'Không thể tải thực đơn!');
+        setError(
+          err?.response?.data?.message ||
+            err.message ||
+            "Không thể tải thực đơn!"
+        );
         setMeals([]);
       } finally {
         setLoading(false);
@@ -36,8 +52,21 @@ export default function MenuDetailScreen({ navigation }) {
     fetchMeals();
   }, [selectedDate]);
 
-  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
   function clampDay(year, month, day) {
     const lastDay = new Date(year, month + 1, 0).getDate();
     return Math.max(1, Math.min(day, lastDay));
@@ -52,7 +81,7 @@ export default function MenuDetailScreen({ navigation }) {
     for (let i = 0; i < 7; i++) {
       const d = clampDay(year, month, startDay + i);
       const dateObj = new Date(year, month, d);
-      const dow = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+      const dow = dateObj.toLocaleDateString("en-US", { weekday: "short" });
       daysArr.push({ label: dow, date: String(d), dateObj });
     }
     return daysArr;
@@ -60,9 +89,17 @@ export default function MenuDetailScreen({ navigation }) {
 
   const days = getWeekDays(selectedDate);
 
-
   // Thay cho currentMeals:
   const currentMeals = meals;
+
+  const handleDeleteMeal = async (mealId) => {
+    try {
+      await mealScheduleAPI.deleteById(mealId);
+      setMeals((prev) => (prev || []).filter((m) => (m._id || m.id) !== mealId));
+    } catch (e) {
+      Alert.alert('Lỗi', 'Không thể xóa món ăn. Vui lòng thử lại.');
+    }
+  };
 
   // Tính tổng dinh dưỡng hôm nay
   const nutritionTotal = React.useMemo(() => {
@@ -79,20 +116,58 @@ export default function MenuDetailScreen({ navigation }) {
     });
     return { calories, proteins, fats, carbs };
   }, [meals]);
-  
+
   // Dữ liệu dinh dưỡng hôm nay (thay thế hard code)
   const todayNutrition = {
-    calories: { label: 'Năng lượng', value: nutritionTotal.calories, unit: 'kCal', progress: nutritionTotal.calories ? Math.min(Math.round(nutritionTotal.calories/2000*100),100) : 0, icon: '🔥' },
-    proteins: { label: 'Đạm', value: nutritionTotal.proteins, unit: 'g', progress: nutritionTotal.proteins ? Math.min(Math.round(nutritionTotal.proteins/100*100),100) : 0, icon: '🍗' },
-    fats: { label: 'Chất béo', value: nutritionTotal.fats, unit: 'g', progress: nutritionTotal.fats ? Math.min(Math.round(nutritionTotal.fats/60*100),100) : 0, icon: '🥚' },
-    carbs: { label: 'Tinh bột', value: nutritionTotal.carbs, unit: 'g', progress: nutritionTotal.carbs ? Math.min(Math.round(nutritionTotal.carbs/250*100),100) : 0, icon: '🍚' },
+    calories: {
+      label: "Năng lượng",
+      value: nutritionTotal.calories,
+      unit: "kCal",
+      progress: nutritionTotal.calories
+        ? Math.min(Math.round((nutritionTotal.calories / 2000) * 100), 100)
+        : 0,
+      icon: "🔥",
+    },
+    proteins: {
+      label: "Đạm",
+      value: nutritionTotal.proteins,
+      unit: "g",
+      progress: nutritionTotal.proteins
+        ? Math.min(Math.round((nutritionTotal.proteins / 100) * 100), 100)
+        : 0,
+      icon: "🍗",
+    },
+    fats: {
+      label: "Chất béo",
+      value: nutritionTotal.fats,
+      unit: "g",
+      progress: nutritionTotal.fats
+        ? Math.min(Math.round((nutritionTotal.fats / 60) * 100), 100)
+        : 0,
+      icon: "🥚",
+    },
+    carbs: {
+      label: "Tinh bột",
+      value: nutritionTotal.carbs,
+      unit: "g",
+      progress: nutritionTotal.carbs
+        ? Math.min(Math.round((nutritionTotal.carbs / 250) * 100), 100)
+        : 0,
+      icon: "🍚",
+    },
   };
 
   function changeMonth(delta) {
     let m = currentMonth + delta;
     let y = currentYear;
-    if (m < 0) { m = 11; y -= 1; }
-    if (m > 11) { m = 0; y += 1; }
+    if (m < 0) {
+      m = 11;
+      y -= 1;
+    }
+    if (m > 11) {
+      m = 0;
+      y += 1;
+    }
     setCurrentMonth(m);
     setCurrentYear(y);
     const midDay = clampDay(y, m, 15);
@@ -121,7 +196,7 @@ export default function MenuDetailScreen({ navigation }) {
       {loading ? (
         <Text>Đang tải...</Text>
       ) : error ? (
-        <Text style={{ color: 'red' }}>{error}</Text>
+        <Text style={{ color: "red" }}>{error}</Text>
       ) : currentMeals.length === 0 ? (
         <Text>Không có món ăn nào cho ngày này</Text>
       ) : (
@@ -129,15 +204,37 @@ export default function MenuDetailScreen({ navigation }) {
           <View key={meal._id} style={styles.mealItem}>
             <View style={styles.mealItemLeft}>
               <View style={styles.mealItemIcon}>
-                <Text style={styles.mealItemIconText}>{meal.mealId?.icon || '🍽️'}</Text>
+                <Text style={styles.mealItemIconText}>
+                  {meal.mealId?.icon || "🍽️"}
+                </Text>
               </View>
               <View style={styles.mealItemInfo}>
                 <Text style={styles.mealItemName}>{meal.mealId?.name}</Text>
                 {/* meal_type, time nếu có */}
-                <Text style={styles.mealItemTime}>{meal.meal_type ? `${meal.meal_type} ${meal.time ? '- ' + meal.time : ''}` : meal.time || ''}</Text>
+                <Text style={styles.mealItemTime}>
+                  {meal.meal_type
+                    ? `${meal.meal_type} ${meal.time ? "- " + meal.time : ""}`
+                    : meal.time || ""}
+                </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
+            <View style={styles.mealItemActions}>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                  Alert.alert(
+                    'Xóa món ăn',
+                    'Bạn có chắc muốn xóa món ăn này khỏi thực đơn?',
+                    [
+                      { text: 'Hủy', style: 'cancel' },
+                      { text: 'Xóa', style: 'destructive', onPress: () => handleDeleteMeal(meal._id) },
+                    ]
+                  );
+                }}
+              >
+                <Feather name="trash-2" size={18} color="#FF6B6B" />
+              </TouchableOpacity>
+            </View>
           </View>
         ))
       )}
@@ -147,7 +244,7 @@ export default function MenuDetailScreen({ navigation }) {
   const renderNutritionSection = () => (
     <View style={styles.nutritionSection}>
       <Text style={styles.nutritionTitle}>Dinh dưỡng hôm nay</Text>
-      
+
       <View style={styles.nutritionItems}>
         {Object.entries(todayNutrition).map(([key, nutrition]) => (
           <View key={key} style={styles.nutritionItem}>
@@ -155,13 +252,16 @@ export default function MenuDetailScreen({ navigation }) {
               <Text style={styles.nutritionIconText}>{nutrition.icon}</Text>
             </View>
             <View style={styles.nutritionInfo}>
-              <Text style={styles.nutritionValue}><Text style={{fontWeight:'bold'}}>{nutrition.label}: </Text>{nutrition.value} {nutrition.unit}</Text>
+              <Text style={styles.nutritionValue}>
+                <Text style={{ fontWeight: "bold" }}>{nutrition.label}: </Text>
+                {nutrition.value} {nutrition.unit}
+              </Text>
               <View style={styles.progressBarContainer}>
-                <View 
+                <View
                   style={[
-                    styles.progressBar, 
-                    { width: `${nutrition.progress}%` }
-                  ]} 
+                    styles.progressBar,
+                    { width: `${nutrition.progress}%` },
+                  ]}
                 />
               </View>
             </View>
@@ -170,12 +270,15 @@ export default function MenuDetailScreen({ navigation }) {
       </View>
     </View>
   );
-  
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="chevron-back" size={22} color={COLORS.black} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Thực đơn</Text>
@@ -184,52 +287,62 @@ export default function MenuDetailScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Month selector */}
       <View style={styles.monthRow}>
-        <TouchableOpacity onPress={() => changeMonth(-1)}>
-          <Feather name="chevron-left" size={18} color={COLORS.gray} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={openPicker}>
-          <Text style={styles.monthText}>{`${monthNames[currentMonth]} ${currentYear}`}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => changeMonth(1)}>
-          <Feather name="chevron-right" size={18} color={COLORS.gray} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity onPress={() => changeMonth(-1)}>
+            <Feather name="chevron-left" size={18} color={COLORS.gray} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={openPicker}>
+            <Text
+              style={styles.monthText}
+            >{`${monthNames[currentMonth]} ${currentYear}`}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => changeMonth(1)}>
+            <Feather name="chevron-right" size={18} color={COLORS.gray} />
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.daysRow}
+        >
+          {days.map((d, idx) => {
+            const active = idx === selectedDateIndex;
+            return (
+              <TouchableOpacity
+                key={`${idx}-${d.dateObj.toISOString().split("T")[0]}`}
+                style={[styles.dayPill, active && styles.dayPillActive]}
+                onPress={() => {
+                  setSelectedDateIndex(idx);
+                  setSelectedDate(d.dateObj);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.dayPillLabel,
+                    active && styles.dayPillLabelActive,
+                  ]}
+                >
+                  {d.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.dayPillDate,
+                    active && styles.dayPillDateActive,
+                  ]}
+                >
+                  {d.date}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
-
-      {/* Day pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.daysRow}
-      >
-        {days.map((d, idx) => {
-          const active = idx === selectedDateIndex;
-          return (
-            <TouchableOpacity
-              key={`${idx}-${d.dateObj.toISOString().split('T')[0]}`}
-              style={[styles.dayPill, active && styles.dayPillActive]}
-              onPress={() => {
-                setSelectedDateIndex(idx);
-                setSelectedDate(d.dateObj);
-              }}
-            >
-              <Text style={[styles.dayPillLabel, active && styles.dayPillLabelActive]}>{d.label}</Text>
-              <Text style={[styles.dayPillDate, active && styles.dayPillDateActive]}>{d.date}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderMealSection()}
-
-        {/* Nutrition section */}
         {renderNutritionSection()}
-
-        {/* Bottom spacing */}
-        <View style={styles.bottomSpacing} />
       </ScrollView>
 
       {/* Floating Action Button */}
@@ -238,7 +351,12 @@ export default function MenuDetailScreen({ navigation }) {
       </TouchableOpacity>
 
       {/* Month/Year Picker Modal */}
-      <Modal transparent visible={pickerVisible} animationType="fade" onRequestClose={() => setPickerVisible(false)}>
+      <Modal
+        transparent
+        visible={pickerVisible}
+        animationType="fade"
+        onRequestClose={() => setPickerVisible(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Chọn tháng/năm</Text>
@@ -249,10 +367,21 @@ export default function MenuDetailScreen({ navigation }) {
                 style={styles.pickerList}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    style={[styles.pickerItem, item.value === currentMonth && styles.pickerItemActive]}
+                    style={[
+                      styles.pickerItem,
+                      item.value === currentMonth && styles.pickerItemActive,
+                    ]}
                     onPress={() => setCurrentMonth(item.value)}
                   >
-                    <Text style={[styles.pickerItemText, item.value === currentMonth && styles.pickerItemTextActive]}>{item.name}</Text>
+                    <Text
+                      style={[
+                        styles.pickerItemText,
+                        item.value === currentMonth &&
+                          styles.pickerItemTextActive,
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
                   </TouchableOpacity>
                 )}
               />
@@ -262,26 +391,42 @@ export default function MenuDetailScreen({ navigation }) {
                 style={styles.pickerList}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    style={[styles.pickerItem, item === currentYear && styles.pickerItemActive]}
+                    style={[
+                      styles.pickerItem,
+                      item === currentYear && styles.pickerItemActive,
+                    ]}
                     onPress={() => setCurrentYear(item)}
                   >
-                    <Text style={[styles.pickerItemText, item === currentYear && styles.pickerItemTextActive]}>{item}</Text>
+                    <Text
+                      style={[
+                        styles.pickerItemText,
+                        item === currentYear && styles.pickerItemTextActive,
+                      ]}
+                    >
+                      {item}
+                    </Text>
                   </TouchableOpacity>
                 )}
               />
             </View>
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalButtonGhost} onPress={() => setPickerVisible(false)}>
+              <TouchableOpacity
+                style={styles.modalButtonGhost}
+                onPress={() => setPickerVisible(false)}
+              >
                 <Text style={styles.modalButtonGhostText}>Hủy</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={() => onPickMonthYear(currentMonth, currentYear)}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => onPickMonthYear(currentMonth, currentYear)}
+              >
                 <Text style={styles.modalButtonText}>Xong</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -291,9 +436,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 10,
@@ -308,13 +453,13 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 10,
     backgroundColor: COLORS.inputBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   monthRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 6,
   },
   monthText: {
@@ -331,8 +476,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: COLORS.inputBackground,
     marginHorizontal: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   dayPillActive: {
     backgroundColor: COLORS.primary,
@@ -357,7 +502,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 0, // Để meal dính sát body dưới chọn ngày
   },
-  
+
   // Meal sections
   mealSection: {
     marginBottom: 20,
@@ -380,17 +525,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   mealItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: COLORS.white,
     padding: 16,
     borderRadius: 16,
     ...SHADOWS.small,
   },
-  mealItemLeft: {
+  mealItemActions: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  deleteButton: {
+    padding: 8,
+  },
+  mealItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   mealItemIcon: {
@@ -398,8 +550,8 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     backgroundColor: COLORS.inputBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   mealItemIconText: {
@@ -437,16 +589,16 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   nutritionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   nutritionIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: COLORS.inputBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   nutritionIconText: {
@@ -463,19 +615,19 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: "#F0F0F0",
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressBar: {
-    height: '100%',
+    height: "100%",
     backgroundColor: COLORS.primary,
     borderRadius: 4,
   },
 
   // No meals
   noMealsContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 40,
   },
   noMealsText: {
@@ -485,27 +637,27 @@ const styles = StyleSheet.create({
 
   // FAB
   fab: {
-    position: 'absolute',
+    position: "absolute",
     right: 20,
     bottom: 30,
     width: 64,
     height: 64,
     borderRadius: 32,
     backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     ...SHADOWS.medium,
   },
 
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalCard: {
-    width: '85%',
+    width: "85%",
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 16,
@@ -515,23 +667,23 @@ const styles = StyleSheet.create({
     fontWeight: FONTS.semiBold,
     color: COLORS.black,
     marginBottom: 10,
-    textAlign: 'center',
+    textAlign: "center",
   },
   pickerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   pickerList: {
     height: 220,
-    width: '48%',
+    width: "48%",
   },
   pickerItem: {
     paddingVertical: 2,
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: 10,
   },
   pickerItemActive: {
-    backgroundColor: '#EEF6FF',
+    backgroundColor: "#EEF6FF",
   },
   pickerItemText: {
     color: COLORS.black,
@@ -541,8 +693,8 @@ const styles = StyleSheet.create({
     fontWeight: FONTS.bold,
   },
   modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     marginTop: 10,
   },
   modalButton: {

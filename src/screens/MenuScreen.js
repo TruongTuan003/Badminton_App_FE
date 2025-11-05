@@ -184,10 +184,12 @@ export default function MenuScreen({ navigation }) {
   const renderTodayMenu = () => (
     <TouchableOpacity 
       style={styles.todayMenuCard}
-      onPress={() => navigation.navigate('MenuDetail')}
     >
       <Text style={styles.todayMenuText}>Thực đơn hôm nay</Text>
-      <TouchableOpacity style={styles.checkButton}>
+      <TouchableOpacity 
+      style={styles.checkButton} 
+      onPress={() => navigation.navigate('MenuDetail')}
+      >
         <Text style={styles.checkButtonText}>Kiểm tra</Text>
       </TouchableOpacity>
     </TouchableOpacity>

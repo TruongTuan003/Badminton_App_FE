@@ -47,8 +47,14 @@ export const workoutAPI = {
 
 export const scheduleAPI = {
   getByDate: (date) => api.get(`/schedules/date/${date}`),
-  getDetails: (scheduleId) => api.get(`/schedules/${scheduleId}`), // dùng route GET /:id
-  create: (data) => api.post('/schedules', data),
+  getDetails: (scheduleId) => api.get(`/schedules/${scheduleId}`),
+  create: (data) => api.post(`/schedules`, data),
+  addWorkout: (scheduleId, data) =>
+    api.post(`/schedules/${scheduleId}/add-workout`, data),
+  updateDetailStatus: (detailId, status) =>
+    api.put(`/schedules/detail/${detailId}`, { status }),
+  removeWorkout: (scheduleId, trainingId) =>
+    api.delete(`/schedules/${scheduleId}/remove-training/${trainingId}`),
 };
 
 export const mealAPI = {
@@ -59,6 +65,7 @@ export const mealAPI = {
 
 export const mealScheduleAPI = {
   getByDate: (date) => api.get(`/meal-schedules/${date}`),
+  create: (data) => api.post('/meal-schedules', data),
 };
 
 export default api;

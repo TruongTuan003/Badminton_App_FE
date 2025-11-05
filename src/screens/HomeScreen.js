@@ -12,6 +12,13 @@ export default function HomeScreen({ navigation, route }) {
   const [todaySchedule, setTodaySchedule] = React.useState(null);
   const [todayMeals, setTodayMeals] = React.useState([]);
   const [mealSummary, setMealSummary] = React.useState({ calories: 0, mealType: '' });
+  const todayStr = (() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  })();
 
   React.useEffect(() => {
     const fetchUserData = async () => {
@@ -33,69 +40,70 @@ export default function HomeScreen({ navigation, route }) {
 
 React.useEffect(() => {
   // 📅 Lấy lịch tập và thực đơn hôm nay
-  const fetchTodayData = async () => {
+  const fetchTodaySchedule = async () => {
     try {
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      const dateStr = `${yyyy}-${mm}-${dd}`;
-
-      console.log("📅 Fetch schedule for today:", dateStr);
-
-      // ✅ Gọi API lấy lịch hôm nay (không cần userId, lấy từ token)
-      const schRes = await scheduleAPI.getByDate(dateStr);
+      console.log("📅 Fetch schedule for today:", todayStr);
+      const schRes = await scheduleAPI.getByDate(todayStr);
       console.log("🟢 Schedule API response:", schRes.data);
 
       if (schRes.data) {
-        // Có thể API trả về { schedule, details }
         const { schedule, details } = schRes.data;
-        const firstDetail = Array.isArray(details) && details.length > 0 ? details[0] : null;
+        const firstDetail =
+          Array.isArray(details) && details.length > 0 ? details[0] : null;
         setTodaySchedule(firstDetail);
       } else {
         console.log("ℹ️ Không có dữ liệu lịch hôm nay");
         setTodaySchedule(null);
       }
+    } catch (error) {
+      console.error("❌ fetchTodaySchedule error:", error.message);
+      setTodaySchedule(null);
+    }
+  };
 
-      // ✅ Gọi API lấy meal hôm nay
-      const mealRes = await mealScheduleAPI.getByDate(dateStr);
+  // 🥗 Hàm lấy meal hôm nay
+  const fetchTodayMeals = async () => {
+    try {
+      console.log("🥗 Fetch meal for today:", todayStr);
+      const mealRes = await mealScheduleAPI.getByDate(todayStr);
       console.log("🥗 Meal API response:", mealRes.data);
-      setTodayMeals(mealRes.data || []);
+
+      const meals = mealRes.data || [];
+      setTodayMeals(meals);
 
       // ✅ Tính tổng calories
-      let sumCalories = 0;
-      mealRes.data?.forEach((item) => {
-        sumCalories += item.mealId?.calories ? Number(item.mealId.calories) : 0;
-      });
+      const sumCalories = meals.reduce((sum, item) => {
+        return sum + (item.mealId?.calories ? Number(item.mealId.calories) : 0);
+      }, 0);
 
       // ✅ Xác định bữa ăn sắp tới
       let current = new Date();
-      let nearMeal = '';
+      let nearMeal = "";
       let minDiff = 24 * 60;
-      mealRes.data?.forEach(item => {
-        let hourMin = item.time || '';
+      meals.forEach((item) => {
+        const hourMin = item.time || "";
         if (/^\d{1,2}:\d{2}$/.test(hourMin)) {
-          const [h, m] = hourMin.split(':').map(Number);
+          const [h, m] = hourMin.split(":").map(Number);
           const mealDate = new Date();
           mealDate.setHours(h, m, 0, 0);
           const diff = (mealDate - current) / 60000;
           if (diff >= 0 && diff < minDiff) {
             minDiff = diff;
-            nearMeal = item.meal_type || item.mealId?.meal_type || '';
+            nearMeal = item.meal_type || item.mealId?.meal_type || "";
           }
         }
       });
 
       setMealSummary({ calories: sumCalories, mealType: nearMeal });
     } catch (error) {
-      console.error("❌ fetchTodayData error:", error.message);
-      setTodaySchedule(null);
+      console.error("❌ fetchTodayMeals error:", error.message);
       setTodayMeals([]);
-      setMealSummary({ calories: 0, mealType: '' });
+      setMealSummary({ calories: 0, mealType: "" });
     }
   };
 
-  fetchTodayData();
+  fetchTodayMeals();
+  fetchTodaySchedule();
 }, []);
 
 

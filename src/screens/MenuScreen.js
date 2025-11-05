@@ -1,4 +1,5 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
   Dimensions,
@@ -10,15 +11,14 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { COLORS, FONTS, SHADOWS } from '../styles/commonStyles';
 import { mealAPI, mealScheduleAPI } from '../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { COLORS, FONTS, SHADOWS } from '../styles/commonStyles';
 
 const { width } = Dimensions.get('window');
 
 export default function MenuScreen({ navigation }) {
   const [selectedPeriod, setSelectedPeriod] = useState('Weekly');
-  const [selectedMeal, setSelectedMeal] = useState('Bữa sáng');
+  const [selectedMeal, setSelectedMeal] = useState('');
   const [periodModalVisible, setPeriodModalVisible] = useState(false);
   const [mealModalVisible, setMealModalVisible] = useState(false);
   const [meals, setMeals] = useState([]);
@@ -50,56 +50,37 @@ export default function MenuScreen({ navigation }) {
     fetchMeals();
   }, []);
 
-  React.useEffect(() => {
-    const fetchTodayMeals = async () => {
-      setLoadingTodayMeals(true);
-      setErrorTodayMeals(null);
-      try {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const dateStr = `${yyyy}-${mm}-${dd}`;
-        const res = await mealScheduleAPI.getByDate(dateStr);
-        setTodayMeals(res.data || []);
-
-        // --- Thêm tự động chọn bữa sắp tới dùng state setSelectedMeal ---
-        if (res.data && res.data.length > 0) {
-          const now = new Date();
-          // Sắp xếp lấy meal đầu có giờ lớn hơn hiện tại, ưu tiên loại bữa
-          let nextMeal = null;
-          let earliestDiff = 24 * 60;
-          res.data.forEach((meal) => {
-            let hourMin = meal.time || '';
-            // Format chuẩn: hh:mm, ví dụ 11:00
-            if (/^\d{1,2}:\d{2}$/.test(hourMin)) {
-              const [h, m] = hourMin.split(':').map(Number);
-              const mealDate = new Date();
-              mealDate.setHours(h, m, 0, 0);
-              const diff = (mealDate - now) / 60000; // phút tới meal
-              if (diff >= 0 && diff < earliestDiff) { // meal tương lai gần nhất
-                earliestDiff = diff;
-                nextMeal = meal;
-              }
-            }
-          });
-          // Nếu có meal hợp lệ, tự chọn loại bữa, không thì giữ nguyên (hoặc Tất cả)
-          if (nextMeal) {
-            setSelectedMeal(nextMeal.meal_type || nextMeal.mealType || nextMeal.mealId?.meal_type || nextMeal.mealId?.mealType || '');
-          } else {
-            setSelectedMeal('');
-          }
-        }
-        // --- end chọn bữa gần nhất ---
-      } catch (err) {
-        setErrorTodayMeals('Không thể tải thực đơn hôm nay');
-        setTodayMeals([]);
-      } finally {
-        setLoadingTodayMeals(false);
-      }
-    };
-    fetchTodayMeals();
+  const loadTodayMeals = React.useCallback(async () => {
+    setLoadingTodayMeals(true);
+    setErrorTodayMeals(null);
+    try {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      const res = await mealScheduleAPI.getByDate(dateStr);
+      setTodayMeals(res.data || []);
+      // Không tự động chọn bữa – mặc định hiển thị tất cả
+    } catch (err) {
+      setErrorTodayMeals('Không thể tải thực đơn hôm nay');
+      setTodayMeals([]);
+    } finally {
+      setLoadingTodayMeals(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    loadTodayMeals();
+  }, [loadTodayMeals]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // Refetch mỗi khi màn hình lấy focus trở lại
+      loadTodayMeals();
+      return undefined;
+    }, [loadTodayMeals])
+  );
 
   React.useEffect(() => {
     // Chỉ tính khi todayMeals thay đổi
@@ -184,27 +165,6 @@ export default function MenuScreen({ navigation }) {
 
       {/* Biểu đồ đơn giản */}
       <View style={styles.chartArea}>
-        <View style={styles.chartBars}>
-          {nutritionData.map((item, index) => (
-            <View key={item.day} style={styles.barContainer}>
-              <View 
-                style={[
-                  styles.bar, 
-                  { 
-                    height: item.value * 1.5,
-                    backgroundColor: item.active ? COLORS.primary : '#E6E7F2'
-                  }
-                ]} 
-              />
-              <Text style={[
-                styles.barLabel,
-                item.active && styles.barLabelActive
-              ]}>
-                {item.day}
-              </Text>
-            </View>
-          ))}
-        </View>
 
         {/* Thống kê dinh dưỡng */}
         <View style={styles.nutritionStats}>
@@ -347,17 +307,21 @@ export default function MenuScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.modalItem}
                 onPress={() => {
-                  setSelectedMeal(item);
+                  if (item === 'Tất cả') {
+                    setSelectedMeal('');
+                  } else {
+                    setSelectedMeal(item);
+                  }
                   setMealModalVisible(false);
                 }}
               >
                 <Text style={[
                   styles.modalItemText,
-                  item === selectedMeal && styles.modalItemTextActive
+                  ((item === 'Tất cả' && selectedMeal === '') || item === selectedMeal) && styles.modalItemTextActive
                 ]}>
                   {item}
                 </Text>
-                {item === selectedMeal && (
+                {((item === 'Tất cả' && selectedMeal === '') || item === selectedMeal) && (
                   <Ionicons name="checkmark" size={20} color={COLORS.primary} />
                 )}
               </TouchableOpacity>

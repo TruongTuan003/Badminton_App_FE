@@ -1,4 +1,5 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
@@ -38,9 +39,7 @@ export default function HomeScreen({ navigation, route }) {
     return unsubscribe;
   }, [navigation]);
 
-React.useEffect(() => {
-  // 📅 Lấy lịch tập và thực đơn hôm nay
-  const fetchTodaySchedule = async () => {
+const fetchTodaySchedule = React.useCallback(async () => {
     try {
       console.log("📅 Fetch schedule for today:", todayStr);
       const schRes = await scheduleAPI.getByDate(todayStr);
@@ -56,13 +55,12 @@ React.useEffect(() => {
         setTodaySchedule(null);
       }
     } catch (error) {
-      console.error("❌ fetchTodaySchedule error:", error.message);
       setTodaySchedule(null);
     }
-  };
+  }, [todayStr]);
 
-  // 🥗 Hàm lấy meal hôm nay
-  const fetchTodayMeals = async () => {
+// 🥗 Hàm lấy meal hôm nay
+const fetchTodayMeals = React.useCallback(async () => {
     try {
       console.log("🥗 Fetch meal for today:", todayStr);
       const mealRes = await mealScheduleAPI.getByDate(todayStr);
@@ -93,18 +91,26 @@ React.useEffect(() => {
           }
         }
       });
-
       setMealSummary({ calories: sumCalories, mealType: nearMeal });
     } catch (error) {
-      console.error("❌ fetchTodayMeals error:", error.message);
       setTodayMeals([]);
       setMealSummary({ calories: 0, mealType: "" });
     }
-  };
+  }, [todayStr]);
 
+React.useEffect(() => {
   fetchTodayMeals();
   fetchTodaySchedule();
-}, []);
+}, [fetchTodayMeals, fetchTodaySchedule]);
+
+useFocusEffect(
+  React.useCallback(() => {
+    // Tự động refresh khi màn hình lấy focus
+    fetchTodayMeals();
+    fetchTodaySchedule();
+    return undefined;
+  }, [fetchTodayMeals, fetchTodaySchedule])
+);
 
 
   // Lấy chiều cao và cân nặng từ userData hoặc sử dụng giá trị mặc định

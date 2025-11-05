@@ -2,7 +2,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { userAPI, scheduleAPI, mealScheduleAPI } from '../services/api';
+import { mealScheduleAPI, scheduleAPI, userAPI } from '../services/api';
 import { calculateBMI } from '../utils/bmiCalculator';
 
 export default function HomeScreen({ navigation, route }) {
@@ -31,58 +31,73 @@ export default function HomeScreen({ navigation, route }) {
     return unsubscribe;
   }, [navigation]);
 
-  React.useEffect(() => {
-    // Lấy lịch tập hôm nay
-    const fetchTodayData = async () => {
-      try {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const dateStr = `${yyyy}-${mm}-${dd}`;
-        // Lấy userId từ profile nếu cần, hoặc backend lấy trong token
-        const userDataRes = await userAPI.getProfile();
-        const userId = userDataRes.data?._id || userDataRes.data?.id;
-        const schRes = await scheduleAPI.getByUserAndDate(userId, dateStr);
-        if (schRes.data && (Array.isArray(schRes.data.scheduleDetails) || schRes.data.scheduleDetails)) {
-          // Có thể schRes.data là 1 obj (Schedule), scheduleDetails chứa list bài tập
-          // Lấy lịch tập/bài tập đầu tiên trong schedule hôm nay
-          setTodaySchedule(Array.isArray(schRes.data.scheduleDetails) ? schRes.data.scheduleDetails[0] : schRes.data.scheduleDetails);
-        }
-        // Lấy thực đơn hôm nay
-        const mealRes = await mealScheduleAPI.getByDate(dateStr);
-        setTodayMeals(mealRes.data || []);
-        // Tính tổng calories và loại bữa gần nhất cho meal card
-        let sumCalories = 0;
-        mealRes.data.forEach((item) => {
-          sumCalories += (item.mealId?.calories) ? Number(item.mealId.calories) : 0;
-        });
-        // Loại bữa gần nhất
-        let current = new Date();
-        let nearMeal = '';
-        let minDiff = 24*60;
-        mealRes.data.forEach(item => {
-          let hourMin = item.time || '';
-          if (/^\d{1,2}:\d{2}$/.test(hourMin)) {
-            const [h, m] = hourMin.split(':').map(Number);
-            const mealDate = new Date();
-            mealDate.setHours(h, m, 0, 0);
-            const diff = (mealDate - current) / 60000;
-            if (diff >= 0 && diff < minDiff) {
-              minDiff = diff;
-              nearMeal = item.meal_type || item.mealId?.meal_type || '';
-            }
-          }
-        });
-        setMealSummary({ calories: sumCalories, mealType: nearMeal });
-      } catch(e) {
+React.useEffect(() => {
+  // 📅 Lấy lịch tập và thực đơn hôm nay
+  const fetchTodayData = async () => {
+    try {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+
+      console.log("📅 Fetch schedule for today:", dateStr);
+
+      // ✅ Gọi API lấy lịch hôm nay (không cần userId, lấy từ token)
+      const schRes = await scheduleAPI.getByDate(dateStr);
+      console.log("🟢 Schedule API response:", schRes.data);
+
+      if (schRes.data) {
+        // Có thể API trả về { schedule, details }
+        const { schedule, details } = schRes.data;
+        const firstDetail = Array.isArray(details) && details.length > 0 ? details[0] : null;
+        setTodaySchedule(firstDetail);
+      } else {
+        console.log("ℹ️ Không có dữ liệu lịch hôm nay");
         setTodaySchedule(null);
-        setTodayMeals([]);
-        setMealSummary({ calories: 0, mealType: '' })
       }
-    };
-    fetchTodayData();
-  }, []);
+
+      // ✅ Gọi API lấy meal hôm nay
+      const mealRes = await mealScheduleAPI.getByDate(dateStr);
+      console.log("🥗 Meal API response:", mealRes.data);
+      setTodayMeals(mealRes.data || []);
+
+      // ✅ Tính tổng calories
+      let sumCalories = 0;
+      mealRes.data?.forEach((item) => {
+        sumCalories += item.mealId?.calories ? Number(item.mealId.calories) : 0;
+      });
+
+      // ✅ Xác định bữa ăn sắp tới
+      let current = new Date();
+      let nearMeal = '';
+      let minDiff = 24 * 60;
+      mealRes.data?.forEach(item => {
+        let hourMin = item.time || '';
+        if (/^\d{1,2}:\d{2}$/.test(hourMin)) {
+          const [h, m] = hourMin.split(':').map(Number);
+          const mealDate = new Date();
+          mealDate.setHours(h, m, 0, 0);
+          const diff = (mealDate - current) / 60000;
+          if (diff >= 0 && diff < minDiff) {
+            minDiff = diff;
+            nearMeal = item.meal_type || item.mealId?.meal_type || '';
+          }
+        }
+      });
+
+      setMealSummary({ calories: sumCalories, mealType: nearMeal });
+    } catch (error) {
+      console.error("❌ fetchTodayData error:", error.message);
+      setTodaySchedule(null);
+      setTodayMeals([]);
+      setMealSummary({ calories: 0, mealType: '' });
+    }
+  };
+
+  fetchTodayData();
+}, []);
+
 
   // Lấy chiều cao và cân nặng từ userData hoặc sử dụng giá trị mặc định
   const fullName = userData?.name || 'Người dùng';
@@ -165,37 +180,60 @@ const programSubtitle = goalNames.length
         </View>
 
         {/* Schedule Card */}
-        <View style={styles.scheduleCard}>
-          <View style={styles.scheduleHeader}>
-            <Text style={styles.scheduleTitle}>Lịch Tập</Text>
-            <TouchableOpacity 
-              style={styles.pillButton} 
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              activeOpacity={0.7}
-              onPress={() => navigation.navigate('Schedule')}
-            >
-              <Text style={styles.pillButtonText}>Chi tiết</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.scheduleRow}>
-            <Text style={styles.scheduleName}>{todaySchedule?.workoutName || todaySchedule?.name || 'Chưa có bài tập'}</Text>
-            <Text style={styles.scheduleTime}>{todaySchedule?.startTime || todaySchedule?.time || '--:--'}</Text>
-          </View>
-          <View style={styles.scheduleFooter}>
-            <Text style={styles.scheduleLabel}>Hôm nay</Text>
-            <TouchableOpacity
-              style={[styles.pillButton, styles.pillSuccess]}
-              onPress={() => {
-                if (todaySchedule?.workoutId || todaySchedule?._id) {
-                  navigation.navigate('TrainingDetail', { id: todaySchedule.workoutId || todaySchedule._id });
-                }
-              }}
-              disabled={!todaySchedule?.workoutId && !todaySchedule?._id}
-            >
-              <Text style={[styles.pillButtonText, styles.pillSuccessText]}>Bắt đầu ngay</Text>
-            </TouchableOpacity>
-          </View>
+<View style={styles.scheduleCard}>
+  <View style={styles.scheduleHeader}>
+    <Text style={styles.scheduleTitle}>Lịch Tập Hôm Nay</Text>
+    <TouchableOpacity
+      style={styles.viewAllButton}
+      onPress={() => navigation.navigate('Schedule')}
+    >
+      <Text style={styles.viewAllText}>Xem tất cả</Text>
+    </TouchableOpacity>
+  </View>
+
+  {todaySchedule ? (
+    <View style={styles.scheduleContent}>
+      <View style={styles.scheduleInfo}>
+        <View style={styles.iconContainer}>
+          <Feather name="activity" size={28} color="#92A3FD" />
         </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.scheduleName}>
+            {todaySchedule.workoutId?.title || 'Không có bài tập'}
+          </Text>
+          <Text style={styles.scheduleNote}>
+            {todaySchedule.note || 'Chuẩn bị cho buổi tập này'}
+          </Text>
+          <Text style={styles.scheduleTime}>
+            🕒 {todaySchedule.time || '--:--'} | {todaySchedule.status === 'done' ? '✅ Hoàn thành' : 'Đang chờ'}
+          </Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.startButton}
+        onPress={() =>
+          navigation.navigate('TrainingDetail', { id: todaySchedule.workoutId?._id })
+        }
+      >
+        <Text style={styles.startButtonText}>Bắt đầu ngay</Text>
+      </TouchableOpacity>
+    </View>
+  ) : (
+    <View style={styles.emptySchedule}>
+      <Feather name="calendar" size={24} color="#7B6F72" />
+      <Text style={styles.emptyText}>Bạn chưa có lịch tập hôm nay</Text>
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => navigation.navigate('Schedule')}
+      >
+        <Text style={styles.createButtonText}>Thêm lịch mới</Text>
+      </TouchableOpacity>
+    </View>
+  )}
+</View>
+
+
 
         {/* Meal Card */}
         <View style={styles.mealCard}>
@@ -407,70 +445,110 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // Schedule Card
-  scheduleCard: {
-    backgroundColor: '#C7E9E5',
-    borderRadius: 22,
-    padding: 20,
-    marginBottom: 16,
-  },
-  scheduleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  scheduleTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1D1617',
-  },
-  pillButton: {
-    backgroundColor: '#EEF6FF',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
-  pillButtonText: {
-    color: '#92A3FD',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  scheduleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  scheduleName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1617',
-  },
-  scheduleTime: {
-    fontSize: 14,
-    color: '#1D1617',
-    opacity: 0.8,
-  },
-  scheduleFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  scheduleLabel: {
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    color: '#1D1617',
-    fontSize: 12,
-  },
-  pillSuccess: {
-    backgroundColor: '#E4F8EA',
-  },
-  pillSuccessText: {
-    color: '#3BB273',
-  },
+scheduleCard: {
+  backgroundColor: '#F3F5FF',
+  borderRadius: 22,
+  padding: 18,
+  marginBottom: 16,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.05,
+  shadowRadius: 8,
+  elevation: 3,
+},
+scheduleHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 10,
+},
+scheduleTitle: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  color: '#1D1617',
+},
+viewAllButton: {
+  backgroundColor: '#EEF6FF',
+  paddingVertical: 5,
+  paddingHorizontal: 12,
+  borderRadius: 20,
+},
+viewAllText: {
+  color: '#92A3FD',
+  fontSize: 12,
+  fontWeight: '600',
+},
+scheduleContent: {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 16,
+  padding: 15,
+  marginTop: 5,
+  shadowColor: '#000',
+  shadowOpacity: 0.05,
+  shadowRadius: 4,
+  elevation: 2,
+},
+scheduleInfo: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  marginBottom: 10,
+},
+iconContainer: {
+  width: 45,
+  height: 45,
+  borderRadius: 22,
+  backgroundColor: '#EEF6FF',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 12,
+},
+scheduleName: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#1D1617',
+  marginBottom: 4,
+},
+scheduleNote: {
+  fontSize: 13,
+  color: '#7B6F72',
+  marginBottom: 4,
+},
+scheduleTime: {
+  fontSize: 12,
+  color: '#ADA4A5',
+},
+startButton: {
+  backgroundColor: '#92A3FD',
+  paddingVertical: 10,
+  borderRadius: 14,
+  alignItems: 'center',
+},
+startButtonText: {
+  color: '#FFFFFF',
+  fontWeight: '700',
+},
+emptySchedule: {
+  justifyContent: 'center',
+  alignItems: 'center',
+  paddingVertical: 20,
+},
+emptyText: {
+  color: '#7B6F72',
+  fontSize: 14,
+  marginVertical: 8,
+},
+createButton: {
+  backgroundColor: '#92A3FD',
+  borderRadius: 20,
+  paddingHorizontal: 18,
+  paddingVertical: 8,
+},
+createButtonText: {
+  color: '#FFFFFF',
+  fontSize: 13,
+  fontWeight: '600',
+},
+
 
   // Meal Card
   mealCard: {

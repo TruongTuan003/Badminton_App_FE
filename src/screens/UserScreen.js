@@ -184,14 +184,16 @@ export default function UserScreen({ navigation, route }) {
             <Feather name="chevron-right" size={20} color="#ADA4A5" />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuIconContainer}>
-              <Ionicons name="time-outline" size={20} color="#92A3FD" />
-            </View>
-            <Text style={styles.menuItemText}>Lịch sử hoạt động</Text>
-            <Feather name="chevron-right" size={20} color="#ADA4A5" />
-          </TouchableOpacity>
-          
+<TouchableOpacity 
+  style={styles.menuItem}
+  onPress={() => navigation.navigate('ActivityHistory')}
+>
+  <View style={styles.menuIconContainer}>
+    <Ionicons name="time-outline" size={20} color="#92A3FD" />
+  </View>
+  <Text style={styles.menuItemText}>Lịch sử hoạt động</Text>
+  <Feather name="chevron-right" size={20} color="#ADA4A5" />
+</TouchableOpacity>
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuIconContainer}>
               <MaterialCommunityIcons name="chart-timeline-variant" size={20} color="#92A3FD" />

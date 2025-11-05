@@ -1,5 +1,6 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
+import ActivityHistoryScreen from '../src/screens/ActivityHistoryScreen';
 import AuthScreen from '../src/screens/AuthScreen';
 import BadmintonSkillsScreen from '../src/screens/BadmintonSkillsScreen';
 import BasicScreen from '../src/screens/BasicScreen';
@@ -51,6 +52,8 @@ export default function App() {
       <Stack.Screen name="ExerciseDetail" component={ExerciseDetailScreen} />
       <Stack.Screen name="TrainingList" component={TrainingListScreen} />
     <Stack.Screen name="TrainingDetail" component={TrainingDetailScreen} />
+    <Stack.Screen name="ActivityHistory" component={ActivityHistoryScreen} options={{ title: 'Lịch sử hoạt động', headerShown: false }} />
+
     </Stack.Navigator>
   );
 }

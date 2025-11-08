@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   Dimensions,
   FlatList,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -227,7 +228,15 @@ export default function MenuScreen({ navigation }) {
           ) : filteredMeals.map((meal) => (
             <View key={meal._id || meal.id} style={styles.mealCard}>
               <View style={styles.mealIcon}>
-                <Text style={styles.mealIconText}>{meal.mealId?.icon || '🍽️'}</Text>
+                {meal.mealId?.image_url ? (
+                  <Image
+                    source={{ uri: meal.mealId.image_url }}
+                    style={styles.mealImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={styles.mealIconText}>{meal.mealId?.icon || '🍽️'}</Text>
+                )}
               </View>
               <View style={styles.mealInfo}>
                 <Text style={styles.mealName}>{meal.mealId?.name}</Text>
@@ -568,6 +577,12 @@ barLabelActive: {
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    overflow: 'hidden',
+  },
+  mealImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   mealIconText: {
     fontSize: 24,

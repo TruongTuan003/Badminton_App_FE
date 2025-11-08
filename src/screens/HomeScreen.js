@@ -239,7 +239,7 @@ const programSubtitle = goalNames.length
       <Text style={styles.emptyText}>Bạn chưa có lịch tập hôm nay</Text>
       <TouchableOpacity
         style={styles.createButton}
-        onPress={() => navigation.navigate('Schedule')}
+        onPress={() => navigation.navigate('Workout')}
       >
         <Text style={styles.createButtonText}>Thêm lịch mới</Text>
       </TouchableOpacity>

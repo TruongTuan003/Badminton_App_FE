@@ -2,6 +2,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
   Alert,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -113,30 +114,6 @@ export default function FoodScreen({ navigation }) {
     fetchMeals();
   }, []);
 
-  // Dữ liệu danh sách món ăn
-  const foodItems = [
-    {
-      id: 1,
-      title: "Hey, it's time for lunch",
-      subtitle: "About 1 minutes ago",
-      icon: '🍓',
-      iconBg: '#FFE0E6'
-    },
-    {
-      id: 2,
-      title: "Don't miss your lowerbody workout",
-      subtitle: "About 3 hours ago",
-      icon: '🏃‍♀️',
-      iconBg: '#E8F5E8'
-    },
-    {
-      id: 3,
-      title: "Hey, let's add some meals for your b..",
-      subtitle: "About 3 hours ago",
-      icon: '🥞',
-      iconBg: '#FFF8E1'
-    }
-  ];
 
   const renderSearchBar = () => (
     <View style={styles.searchContainer}>
@@ -209,7 +186,15 @@ export default function FoodScreen({ navigation }) {
                 onPress={() => handleOpenModal(meal)}
               >
                 <View style={styles.foodItemIcon}>
-                  <Text style={styles.foodItemIconText}>{meal.icon || '🍽️'}</Text>
+                  {meal.image_url ? (
+                    <Image
+                      source={{ uri: meal.image_url }}
+                      style={styles.foodItemImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={styles.foodItemIconText}>{meal.icon || '🍽️'}</Text>
+                  )}
                 </View>
                 <View style={styles.foodItemContent}>
                   <Text style={styles.foodItemTitle}>{meal.name}</Text>
@@ -534,12 +519,19 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
   },
   foodItemIcon: {
+    overflow: 'hidden',
     width: 50,
     height: 50,
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    backgroundColor: COLORS.inputBackground,
+  },
+  foodItemImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   foodItemIconText: {
     fontSize: 20,

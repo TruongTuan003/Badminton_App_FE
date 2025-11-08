@@ -3,6 +3,7 @@ import React from "react";
 import {
   Alert,
   FlatList,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -204,9 +205,17 @@ export default function MenuDetailScreen({ navigation }) {
           <View key={meal._id} style={styles.mealItem}>
             <View style={styles.mealItemLeft}>
               <View style={styles.mealItemIcon}>
-                <Text style={styles.mealItemIconText}>
-                  {meal.mealId?.icon || "🍽️"}
-                </Text>
+                {meal.mealId?.image_url ? (
+                  <Image
+                    source={{ uri: meal.mealId.image_url }}
+                    style={styles.mealItemImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={styles.mealItemIconText}>
+                    {meal.mealId?.icon || "🍽️"}
+                  </Text>
+                )}
               </View>
               <View style={styles.mealItemInfo}>
                 <Text style={styles.mealItemName}>{meal.mealId?.name}</Text>
@@ -553,6 +562,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    overflow: "hidden",
+  },
+  mealItemImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   mealItemIconText: {
     fontSize: 24,

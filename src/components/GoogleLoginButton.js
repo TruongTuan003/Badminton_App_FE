@@ -1,22 +1,18 @@
 import { AntDesign } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as AuthSession from "expo-auth-session"; // 
+import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect } from "react";
-import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Alert, TouchableOpacity, StyleSheet } from "react-native";
 
 export default function GoogleLoginButton({ onLoginSuccess }) {
   useEffect(() => {
-    // 👇 Dòng này sẽ in ra Redirect URI thật của Expo
-    console.log(
-      "👉 Redirect URI:",
-      AuthSession.makeRedirectUri({ useProxy: true })
-    );
+    console.log("👉 Redirect URI:", AuthSession.makeRedirectUri({ useProxy: true }));
   }, []);
+
   const handleLogin = async () => {
     try {
-      // ⚡️ Đổi localhost thành IP máy thật nếu test trên thiết bị thật
-      const backendUrl = "http://192.168.1.142:3000/api/auth/google";
+      const backendUrl = "http://192.168.10.25:3000/api/auth/google";
 
       const result = await WebBrowser.openAuthSessionAsync(backendUrl);
 
@@ -35,40 +31,21 @@ export default function GoogleLoginButton({ onLoginSuccess }) {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.iconButton} onPress={handleLogin}>
-        <AntDesign name="google" size={24} color="#DB4437" />
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity style={styles.iconButton} onPress={handleLogin}>
+      <AntDesign name="google" size={28} color="#DB4437" />
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 20,
-  },
   iconButton: {
-    flexDirection: "row",
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+    justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  googleIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 10,
-  },
-  buttonText: {
-    color: "#000",
-    fontSize: 16,
-    fontWeight: "500",
   },
 });

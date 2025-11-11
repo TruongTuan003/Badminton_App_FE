@@ -1,65 +1,72 @@
-import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { authAPI } from '../services/api';
-import { COLORS, FONTS, SHADOWS, SIZES, SPACING } from '../styles/commonStyles';
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import GoogleLoginButton from "../components/GoogleLoginButton";
+import { authAPI } from "../services/api";
+import { COLORS, FONTS, SHADOWS, SIZES, SPACING } from "../styles/commonStyles";
 
 export default function AuthScreen({ navigation }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-const handleLogin = async () => {
-  try {
-    const res = await authAPI.login(email, password);
-    console.log("Login response:", res.data);
-    
-    if (res.data.token) {
-      await AsyncStorage.setItem("token", res.data.token);
+  const handleLogin = async () => {
+    try {
+      const res = await authAPI.login(email, password);
+      console.log("Login response:", res.data);
+
+      if (res.data.token) {
+        await AsyncStorage.setItem("token", res.data.token);
+      }
+
+      const userData = res.data.user || {
+        firstName: "Stefani",
+        lastName: "Wong",
+        email: email,
+        isLoggedIn: true,
+      };
+      navigation.replace("Welcome", { userData });
+    } catch (error) {
+      alert(error.response?.data?.message || "Email hoặc mật khẩu không đúng!");
     }
-    
-    const userData = res.data.user || {
-      firstName: 'Stefani',
-      lastName: 'Wong',
-      email: email,
-      isLoggedIn: true
-    };
-    navigation.replace('Welcome', { userData });
-  } catch (error) {
-    alert(error.response?.data?.message || "Email hoặc mật khẩu không đúng!");
-  }
-};
+  };
 
   const handleForgotPassword = () => {
-    console.log('Forgot password', email);
-    navigation.navigate('ForgotPassword', { email });
+    console.log("Forgot password", email);
+    navigation.navigate("ForgotPassword", { email });
   };
 
   const handleGoogleLogin = () => {
-    console.log('Google Login');
+    console.log("Google Login");
     const userData = {
-      firstName: 'Stefani',
-      lastName: 'Wong',
-      email: 'stefani.wong@gmail.com',
-      isLoggedIn: true
+      firstName: "Stefani",
+      lastName: "Wong",
+      email: "stefani.wong@gmail.com",
+      isLoggedIn: true,
     };
-    navigation.replace('Home', userData);
+    navigation.replace("Home", userData);
   };
 
   const handleFacebookLogin = () => {
-    console.log('Facebook Login');
+    console.log("Facebook Login");
     const userData = {
-      firstName: 'Stefani',
-      lastName: 'Wong',
-      email: 'stefani.wong@facebook.com',
-      isLoggedIn: true
+      firstName: "Stefani",
+      lastName: "Wong",
+      email: "stefani.wong@facebook.com",
+      isLoggedIn: true,
     };
-    navigation.replace('Home', userData);
+    navigation.replace("Home", userData);
   };
 
   const handleRegister = () => {
-    navigation.navigate('Register');
+    navigation.navigate("Register");
   };
 
   return (
@@ -72,7 +79,12 @@ const handleLogin = async () => {
       <View style={styles.form}>
         {/* Email */}
         <View style={styles.inputContainer}>
-          <MaterialIcons name="email" size={24} color="#888" style={styles.inputIcon} />
+          <MaterialIcons
+            name="email"
+            size={24}
+            color="#888"
+            style={styles.inputIcon}
+          />
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -83,9 +95,13 @@ const handleLogin = async () => {
           />
         </View>
 
-        
         <View style={styles.inputContainer}>
-          <MaterialIcons name="lock-outline" size={24} color="#888" style={styles.inputIcon} />
+          <MaterialIcons
+            name="lock-outline"
+            size={24}
+            color="#888"
+            style={styles.inputIcon}
+          />
           <TextInput
             style={styles.input}
             placeholder="Mật khẩu"
@@ -94,46 +110,56 @@ const handleLogin = async () => {
             secureTextEntry={!showPassword}
             autoCapitalize="none"
           />
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.eyeIcon}
             onPress={() => setShowPassword(!showPassword)}
           >
             <MaterialIcons
-              name={showPassword ? 'visibility' : 'visibility-off'}
+              name={showPassword ? "visibility" : "visibility-off"}
               size={24}
               color="#888"
             />
           </TouchableOpacity>
         </View>
 
-      
-        <TouchableOpacity 
-          style={styles.forgotPasswordContainer} 
+        <TouchableOpacity
+          style={styles.forgotPasswordContainer}
           onPress={handleForgotPassword}
         >
           <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
         </TouchableOpacity>
 
-      
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <MaterialIcons name="login" size={20} color={COLORS.white} style={styles.loginIcon} />
+          <MaterialIcons
+            name="login"
+            size={20}
+            color={COLORS.white}
+            style={styles.loginIcon}
+          />
           <Text style={styles.loginButtonText}>Đăng Nhập</Text>
         </TouchableOpacity>
 
-       
         <View style={styles.dividerContainer}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>Hoặc</Text>
           <View style={styles.dividerLine} />
         </View>
 
-    
         <View style={styles.socialContainer}>
-          <TouchableOpacity style={styles.iconButton} onPress={handleGoogleLogin}>
-            <AntDesign name="google" size={24} color="#DB4437" />
-          </TouchableOpacity>
-    
-          <TouchableOpacity style={styles.iconButton} onPress={handleFacebookLogin}>
+          <View style={styles.iconButton}>
+            <GoogleLoginButton
+              onLoginSuccess={(user) => {
+                // lưu user vào AsyncStorage
+                AsyncStorage.setItem("user", JSON.stringify(user));
+                navigation.replace("Home", { userData: user });
+              }}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={handleFacebookLogin}
+          >
             <FontAwesome name="facebook" size={24} color="#1877F2" />
           </TouchableOpacity>
         </View>
@@ -156,7 +182,7 @@ const styles = StyleSheet.create({
     padding: SPACING.l,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: SIZES.height * 0.05,
     marginBottom: SPACING.xl,
   },
@@ -173,24 +199,24 @@ const styles = StyleSheet.create({
   },
   form: {
     flex: 1,
-    justifyContent: 'flex-start',
+    justifyContent: "flex-start",
     marginTop: SPACING.l,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F8F8',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F8F8",
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: "#F0F0F0",
   },
   inputIcon: {
     fontSize: 24,
     marginRight: 12,
-    color: '#ADA4A5',
+    color: "#ADA4A5",
   },
   input: {
     flex: 1,
@@ -202,7 +228,7 @@ const styles = StyleSheet.create({
     padding: SPACING.s,
   },
   forgotPasswordContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     marginTop: SPACING.xs,
     marginBottom: SPACING.xl,
   },
@@ -215,9 +241,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 30,
     marginVertical: SPACING.l,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     ...SHADOWS.primaryShadow,
   },
   loginIcon: {
@@ -225,19 +251,19 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: COLORS.white,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: SIZES.body1,
     fontWeight: FONTS.bold,
   },
   dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: SPACING.l,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E1E1E1',
+    backgroundColor: "#E1E1E1",
   },
   dividerText: {
     marginHorizontal: SPACING.m,
@@ -245,8 +271,8 @@ const styles = StyleSheet.create({
     fontSize: SIZES.body3,
   },
   socialContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginVertical: SPACING.m,
   },
   iconButton: {
@@ -254,16 +280,16 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#E8E8E8",
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: COLORS.white,
     marginHorizontal: SPACING.m,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: SPACING.xl,
   },
   footerText: {

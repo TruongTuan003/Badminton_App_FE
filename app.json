@@ -3,6 +3,7 @@
     "name": "Bad2Pro",
     "slug": "Bad2Pro",
     "version": "1.0.0",
+    "owner": "hoanganhiuh",
     "orientation": "portrait",
     "scheme": "bad2pro",
     "userInterfaceStyle": "automatic",

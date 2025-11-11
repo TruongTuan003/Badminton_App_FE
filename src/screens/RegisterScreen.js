@@ -8,12 +8,16 @@ export default function RegisterScreen({ navigation }) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [hasStartedTypingConfirmPassword, setHasStartedTypingConfirmPassword] = useState(false);
 
 const handleRegister = async () => {
   try {
-    if (!fullName || !email || !password) {
+    if (!fullName || !email || !password || !confirmPassword) {
       alert('Vui lòng điền đầy đủ thông tin');
       return;
     }
@@ -26,6 +30,11 @@ const handleRegister = async () => {
 
     if (password.length < 6) {
       alert('Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert('Mật khẩu xác nhận không khớp');
       return;
     }
 
@@ -49,6 +58,21 @@ const handleRegister = async () => {
 
   const handleFacebookRegister = () => {
     console.log('Facebook Register');
+  };
+
+  const handleConfirmPasswordChange = (text) => {
+    setConfirmPassword(text);
+    setHasStartedTypingConfirmPassword(true);
+    // Chỉ kiểm tra lỗi khi người dùng nhập vào trường xác nhận mật khẩu
+    if (text && password && text !== password) {
+      setPasswordError('Mật khẩu xác nhận không khớp');
+    } else {
+      setPasswordError('');
+    }
+  };
+
+  const handlePasswordChange = (text) => {
+    setPassword(text);
   };
 
   return (
@@ -83,26 +107,55 @@ const handleRegister = async () => {
           />
         </View>
 
-        <View style={styles.inputContainer}>
-          <MaterialIcons name="lock-outline" size={24} color="#ADA4A5" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            autoCapitalize="none"
-          />
-          <TouchableOpacity 
-            style={styles.eyeIcon}
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <MaterialIcons
-              name={showPassword ? 'visibility' : 'visibility-off'}
-              size={24}
-              color="#ADA4A5"
+        <View>
+          <View style={styles.inputContainer}>
+            <MaterialIcons name="lock-outline" size={24} color="#ADA4A5" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={handlePasswordChange}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
             />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.eyeIcon}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <MaterialIcons
+                name={showPassword ? 'visibility' : 'visibility-off'}
+                size={24}
+                color="#ADA4A5"
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View>
+          <View style={styles.inputContainer}>
+            <MaterialIcons name="lock-outline" size={24} color="#ADA4A5" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Xác nhận mật khẩu"
+              value={confirmPassword}
+              onChangeText={handleConfirmPasswordChange}
+              secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity 
+              style={styles.eyeIcon}
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              <MaterialIcons
+                name={showConfirmPassword ? 'visibility' : 'visibility-off'}
+                size={24}
+                color="#ADA4A5"
+              />
+            </TouchableOpacity>
+          </View>
+          {hasStartedTypingConfirmPassword && passwordError ? (
+            <Text style={styles.errorText}>{passwordError}</Text>
+          ) : null}
         </View>
 
         <View style={styles.termsContainer}>
@@ -309,5 +362,12 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: SIZES.body3,
     fontWeight: FONTS.bold,
+  },
+  errorText: {
+    color: '#FF0000',
+    fontSize: SIZES.body3,
+    marginTop: 4,
+    marginLeft: 16,
+    marginBottom: 8,
   },
 });

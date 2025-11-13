@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 
-const API_URL = 'http://192.168.1.142:3000/api'; 
+const API_URL = 'http://192.168.10.14:3000/api'; 
 
 
 
@@ -67,6 +67,10 @@ export const mealScheduleAPI = {
   getByDate: (date) => api.get(`/meal-schedules/${date}`),
   create: (data) => api.post('/meal-schedules', data),
   deleteById: (id) => api.delete(`/meal-schedules/${id}`),
+
+  // ✅ Gọi AI backend để tạo thực đơn daily
+  generateDailyAIPlan: (data) => api.post('/meal-plans-ai', data),
+  applyMealPlan: (data) => api.post('/meal-plans/apply', data),
 };
 
 export const trainingLogAPI = {

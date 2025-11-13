@@ -1,18 +1,27 @@
-import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
-import { mealScheduleAPI, scheduleAPI, userAPI } from '../services/api';
-import { calculateBMI } from '../utils/bmiCalculator';
+import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import React from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { LineChart } from "react-native-chart-kit";
+import { mealScheduleAPI, scheduleAPI, userAPI } from "../services/api";
+import { calculateBMI } from "../utils/bmiCalculator";
 
 export default function HomeScreen({ navigation, route }) {
   // Lấy thông tin người dùng từ API
   const [userData, setUserData] = React.useState(null);
-  const [activeTab, setActiveTab] = React.useState('home');
+  const [activeTab, setActiveTab] = React.useState("home");
   const [todaySchedule, setTodaySchedule] = React.useState(null);
   const [todayMeals, setTodayMeals] = React.useState([]);
-  const [mealSummary, setMealSummary] = React.useState({ calories: 0, mealType: '' });
+  const [mealSummary, setMealSummary] = React.useState({
+    calories: 0,
+    mealType: "",
+  });
   const todayStr = (() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -27,19 +36,19 @@ export default function HomeScreen({ navigation, route }) {
         const response = await userAPI.getProfile();
         setUserData(response.data);
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error("Error fetching user data:", error);
       }
     };
 
     fetchUserData();
-    const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener("focus", () => {
       fetchUserData();
-      setActiveTab('home');
+      setActiveTab("home");
     });
     return unsubscribe;
   }, [navigation]);
 
-const fetchTodaySchedule = React.useCallback(async () => {
+  const fetchTodaySchedule = React.useCallback(async () => {
     try {
       console.log("📅 Fetch schedule for today:", todayStr);
       const schRes = await scheduleAPI.getByDate(todayStr);
@@ -59,8 +68,8 @@ const fetchTodaySchedule = React.useCallback(async () => {
     }
   }, [todayStr]);
 
-// 🥗 Hàm lấy meal hôm nay
-const fetchTodayMeals = React.useCallback(async () => {
+  // 🥗 Hàm lấy meal hôm nay
+  const fetchTodayMeals = React.useCallback(async () => {
     try {
       console.log("🥗 Fetch meal for today:", todayStr);
       const mealRes = await mealScheduleAPI.getByDate(todayStr);
@@ -98,54 +107,60 @@ const fetchTodayMeals = React.useCallback(async () => {
     }
   }, [todayStr]);
 
-React.useEffect(() => {
-  fetchTodayMeals();
-  fetchTodaySchedule();
-}, [fetchTodayMeals, fetchTodaySchedule]);
-
-useFocusEffect(
-  React.useCallback(() => {
-    // Tự động refresh khi màn hình lấy focus
+  React.useEffect(() => {
     fetchTodayMeals();
     fetchTodaySchedule();
-    return undefined;
-  }, [fetchTodayMeals, fetchTodaySchedule])
-);
+  }, [fetchTodayMeals, fetchTodaySchedule]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      // Tự động refresh khi màn hình lấy focus
+      fetchTodayMeals();
+      fetchTodaySchedule();
+      return undefined;
+    }, [fetchTodayMeals, fetchTodaySchedule])
+  );
 
   // Lấy chiều cao và cân nặng từ userData hoặc sử dụng giá trị mặc định
-  const fullName = userData?.name || 'Người dùng';
+  const fullName = userData?.name || "Người dùng";
   let goalsArray = [];
   if (Array.isArray(userData?.goal)) {
     goalsArray = userData.goal;
   } else if (userData?.goal) {
-  if (typeof userData.goal === 'string') {
-    try {
-      const parsed = JSON.parse(userData.goal);
-      goalsArray = Array.isArray(parsed) ? parsed : [userData.goal];
-    } catch (err) {
+    if (typeof userData.goal === "string") {
+      try {
+        const parsed = JSON.parse(userData.goal);
+        goalsArray = Array.isArray(parsed) ? parsed : [userData.goal];
+      } catch (err) {
+        goalsArray = [userData.goal];
+      }
+    } else {
       goalsArray = [userData.goal];
     }
-  } else {
-    goalsArray = [userData.goal];
   }
-}
 
   const goalNames = goalsArray
-  .map(g => (typeof g === 'string' ? g : (g?.title || '')))
-  .filter(Boolean);
+    .map((g) => (typeof g === "string" ? g : g?.title || ""))
+    .filter(Boolean);
 
-const programSubtitle = goalNames.length
-  ? `${goalNames.slice(0, 2).join(' + ')}${goalNames.length > 2 ? ` +${goalNames.length - 2}` : ''}`
-  : '';
+  const programSubtitle = goalNames.length
+    ? `${goalNames.slice(0, 2).join(" + ")}${
+        goalNames.length > 2 ? ` +${goalNames.length - 2}` : ""
+      }`
+    : "";
 
-  const height = userData?.height || '170';
-  const weight = userData?.weight || '65';
-  const heightUnit = userData?.heightUnit || 'CM';
-  const weightUnit = userData?.weightUnit || 'KG';
-  
+  const height = userData?.height || "170";
+  const weight = userData?.weight || "65";
+  const heightUnit = userData?.heightUnit || "CM";
+  const weightUnit = userData?.weightUnit || "KG";
+
   // Tính toán chỉ số BMI
-  const bmi = calculateBMI(parseFloat(weight), parseFloat(height), weightUnit, heightUnit);
+  const bmi = calculateBMI(
+    parseFloat(weight),
+    parseFloat(height),
+    weightUnit,
+    heightUnit
+  );
 
   // Dữ liệu mẫu cho biểu đồ
   const workoutData = {
@@ -153,15 +168,18 @@ const programSubtitle = goalNames.length
     datasets: [
       {
         data: [20, 45, 28, 80, 99, 43, 50],
-        color: () => '#92A3FD',
-        strokeWidth: 2
-      }
+        color: () => "#92A3FD",
+        strokeWidth: 2,
+      },
     ],
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={styles.scrollView}
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -178,10 +196,12 @@ const programSubtitle = goalNames.length
         <View style={styles.bmiCard}>
           <View style={styles.bmiInfo}>
             <Text style={styles.bmiTitle}>BMI (Body Mass Index)</Text>
-            <Text style={styles.bmiSubtitle}>Bạn có thể trạng {bmi.category}</Text>
-            <TouchableOpacity 
+            <Text style={styles.bmiSubtitle}>
+              Bạn có thể trạng {bmi.category}
+            </Text>
+            <TouchableOpacity
               style={styles.viewMoreButton}
-              onPress={() => navigation.navigate('User', userData)}
+              onPress={() => navigation.navigate("User", userData)}
             >
               <Text style={styles.viewMoreText}>Xem thêm</Text>
             </TouchableOpacity>
@@ -194,80 +214,157 @@ const programSubtitle = goalNames.length
         </View>
 
         {/* Schedule Card */}
-<View style={styles.scheduleCard}>
-  <View style={styles.scheduleHeader}>
-    <Text style={styles.scheduleTitle}>Lịch Tập Hôm Nay</Text>
-    <TouchableOpacity
-      style={styles.viewAllButton}
-      onPress={() => navigation.navigate('Schedule')}
-    >
-      <Text style={styles.viewAllText}>Xem tất cả</Text>
-    </TouchableOpacity>
-  </View>
+        <View style={styles.scheduleCard}>
+          <View style={styles.scheduleHeader}>
+            <Text style={styles.scheduleTitle}>Lịch Tập Hôm Nay</Text>
+            <TouchableOpacity
+              style={styles.viewAllButton}
+              onPress={() => navigation.navigate("Schedule")}
+            >
+              <Text style={styles.viewAllText}>Xem tất cả</Text>
+            </TouchableOpacity>
+          </View>
 
-  {todaySchedule ? (
-    <View style={styles.scheduleContent}>
-      <View style={styles.scheduleInfo}>
-        <View style={styles.iconContainer}>
-          <Feather name="activity" size={28} color="#92A3FD" />
+          {todaySchedule ? (
+            <View style={styles.scheduleContent}>
+              <View style={styles.scheduleInfo}>
+                <View style={styles.iconContainer}>
+                  <Feather name="activity" size={28} color="#92A3FD" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.scheduleName}>
+                    {todaySchedule.workoutId?.title || "Không có bài tập"}
+                  </Text>
+                  <Text style={styles.scheduleNote}>
+                    {todaySchedule.note || "Chuẩn bị cho buổi tập này"}
+                  </Text>
+                  <Text style={styles.scheduleTime}>
+                    🕒 {todaySchedule.time || "--:--"} |{" "}
+                    {todaySchedule.status === "done"
+                      ? "✅ Hoàn thành"
+                      : "Đang chờ"}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.startButton}
+                onPress={() =>
+                  navigation.navigate("TrainingDetail", {
+                    id: todaySchedule.workoutId?._id,
+                  })
+                }
+              >
+                <Text style={styles.startButtonText}>Bắt đầu ngay</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.emptySchedule}>
+              <Feather name="calendar" size={24} color="#7B6F72" />
+              <Text style={styles.emptyText}>Bạn chưa có lịch tập hôm nay</Text>
+              <TouchableOpacity
+                style={styles.createButton}
+                onPress={() => navigation.navigate("Workout")}
+              >
+                <Text style={styles.createButtonText}>Thêm lịch mới</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.scheduleName}>
-            {todaySchedule.workoutId?.title || 'Không có bài tập'}
-          </Text>
-          <Text style={styles.scheduleNote}>
-            {todaySchedule.note || 'Chuẩn bị cho buổi tập này'}
-          </Text>
-          <Text style={styles.scheduleTime}>
-            🕒 {todaySchedule.time || '--:--'} | {todaySchedule.status === 'done' ? '✅ Hoàn thành' : 'Đang chờ'}
-          </Text>
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={styles.startButton}
-        onPress={() =>
-          navigation.navigate('TrainingDetail', { id: todaySchedule.workoutId?._id })
-        }
-      >
-        <Text style={styles.startButtonText}>Bắt đầu ngay</Text>
-      </TouchableOpacity>
-    </View>
-  ) : (
-    <View style={styles.emptySchedule}>
-      <Feather name="calendar" size={24} color="#7B6F72" />
-      <Text style={styles.emptyText}>Bạn chưa có lịch tập hôm nay</Text>
-      <TouchableOpacity
-        style={styles.createButton}
-        onPress={() => navigation.navigate('Workout')}
-      >
-        <Text style={styles.createButtonText}>Thêm lịch mới</Text>
-      </TouchableOpacity>
-    </View>
-  )}
-</View>
-
-
 
         {/* Meal Card */}
         <View style={styles.mealCard}>
           <View style={styles.scheduleHeader}>
             <Text style={styles.mealTitle}>Thực đơn hôm nay</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.pillButtonDanger}
-              onPress={() => navigation.navigate('Menu')}
+              onPress={() => navigation.navigate("Menu")}
             >
               <Text style={styles.pillButtonDangerText}>Chi tiết</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.mealRow}>
-            <Text style={styles.mealCaloriesLeft}>{mealSummary.calories}/2500</Text>
-            <Text style={styles.mealCaloriesLabel}>Calories</Text>
-          </View>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, {width: `${Math.min(mealSummary.calories/2500*100, 100)}%`}]} />
-          </View>
-          <Text style={styles.mealFooter}>{mealSummary.mealType || '...'}</Text>
+
+          {todayMeals && todayMeals.length > 0 ? (
+            <>
+              <View style={styles.mealRow}>
+                <Text style={styles.mealCaloriesLeft}>
+                  {mealSummary.calories}/2500
+                </Text>
+                <Text style={styles.mealCaloriesLabel}>Calories</Text>
+              </View>
+
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${Math.min(
+                        (mealSummary.calories / 2500) * 100,
+                        100
+                      )}%`,
+                    },
+                  ]}
+                />
+              </View>
+
+              <Text style={styles.mealFooter}>
+                {mealSummary.mealType || "Bữa ăn trong ngày"}
+              </Text>
+            </>
+          ) : (
+            <View style={styles.emptySchedule}>
+              <Feather name="calendar" size={24} color="#7B6F72" />
+              <Text style={styles.emptyText}>Bạn chưa có thực đơn hôm nay</Text>
+<TouchableOpacity
+  style={styles.createButton}
+  onPress={async () => {
+    try {
+      // 1️⃣ Lấy mục tiêu người dùng
+      const response = await userAPI.getProfile();
+      const goal = response.data.goal;
+      const readableGoal = Array.isArray(goal) ? goal.join(", ") : goal;
+      const type = "daily";
+      console.log("🤖 Gọi AI tạo thực đơn với goal:", readableGoal, "và type:", type);
+
+      // 2️⃣ Gọi AI tạo thực đơn DAILY
+      const aiRes = await mealScheduleAPI.generateDailyAIPlan({ goal: readableGoal, type });
+      const mealPlanId = aiRes?.data?.data?._id;
+      const meals = aiRes?.data?.data?.meals || [];
+
+      if (!mealPlanId) {
+        console.warn("⚠️ Không tìm thấy mealPlanId từ AI response:", JSON.stringify(aiRes.data, null, 2));
+        return;
+      }
+
+      console.log("✅ AI tạo MealPlan thành công:", mealPlanId);
+
+      // 3️⃣ Gán meal plan đó cho user (áp dụng vào lịch)
+      await mealPlanAPI.applyToUser({
+        mealPlanId,
+        startDate: todayStr
+      });
+
+      // 4️⃣ Lấy lại danh sách thực đơn hôm nay
+      const res = await mealScheduleAPI.getByDate(todayStr);
+      setTodayMeals(res.data);
+
+      console.log("🎉 Đã áp dụng thực đơn thành công!");
+    } catch (err) {
+      if (err.response) {
+        console.warn("⚠️ Lỗi tạo thực đơn (response):", JSON.stringify(err.response.data, null, 2));
+      } else if (err.request) {
+        console.warn("⚠️ Lỗi tạo thực đơn (request):", err.request);
+      } else {
+        console.warn("⚠️ Lỗi tạo thực đơn (message):", err.message);
+      }
+    }
+  }}
+>
+  <Text style={styles.createButtonText}>Tạo thực đơn ngay</Text>
+</TouchableOpacity>
+
+            </View>
+          )}
         </View>
 
         {/* Progress */}
@@ -281,7 +378,7 @@ const programSubtitle = goalNames.length
               <Feather name="chevron-down" size={16} color="#92A3FD" />
             </View>
           </View>
-          
+
           {/* Workout chart */}
           <View style={styles.workoutChart}>
             <LineChart
@@ -289,73 +386,85 @@ const programSubtitle = goalNames.length
               width={320}
               height={180}
               chartConfig={{
-                backgroundColor: '#ffffff',
-                backgroundGradientFrom: '#ffffff',
-                backgroundGradientTo: '#ffffff',
+                backgroundColor: "#ffffff",
+                backgroundGradientFrom: "#ffffff",
+                backgroundGradientTo: "#ffffff",
                 decimalPlaces: 0,
-                color: () => '#92A3FD',
-                labelColor: () => '#333333',
+                color: () => "#92A3FD",
+                labelColor: () => "#333333",
                 style: {
-                  borderRadius: 16
+                  borderRadius: 16,
                 },
                 propsForDots: {
-                  r: '6',
-                  strokeWidth: '2',
-                  stroke: '#92A3FD'
-                }
+                  r: "6",
+                  strokeWidth: "2",
+                  stroke: "#92A3FD",
+                },
               }}
               bezier
               style={{
                 marginVertical: 8,
-                borderRadius: 16
+                borderRadius: 16,
               }}
             />
           </View>
         </View>
 
         {/* Latest Workout removed to match simplified mock */}
-        
+
         {/* Bottom spacing */}
         <View style={styles.bottomSpacing}></View>
       </ScrollView>
-      
+
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.navItem}
-          onPress={() => setActiveTab('home')}
+          onPress={() => setActiveTab("home")}
         >
-          <Ionicons name="home" size={24} color={activeTab === 'home' ? '#92A3FD' : '#ADA4A5'} />
+          <Ionicons
+            name="home"
+            size={24}
+            color={activeTab === "home" ? "#92A3FD" : "#ADA4A5"}
+          />
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.navItem}
           onPress={() => {
-            setActiveTab('workout');
-            navigation.navigate('Workout');
+            setActiveTab("workout");
+            navigation.navigate("Workout");
           }}
         >
-          <Feather name="activity" size={24} color={activeTab === 'workout' ? '#92A3FD' : '#ADA4A5'} />
+          <Feather
+            name="activity"
+            size={24}
+            color={activeTab === "workout" ? "#92A3FD" : "#ADA4A5"}
+          />
         </TouchableOpacity>
         <TouchableOpacity style={styles.navButton}>
           <Feather name="search" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <TouchableOpacity 
-        style={styles.navItem}
+        <TouchableOpacity
+          style={styles.navItem}
           onPress={() => {
-            setActiveTab('food');
-            navigation.navigate('Food');
+            setActiveTab("food");
+            navigation.navigate("Food");
           }}
         >
           <MaterialCommunityIcons name="food" size={24} color="#ADA4A5" />
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.navItem} 
+        <TouchableOpacity
+          style={styles.navItem}
           onPress={() => {
-            setActiveTab('user');
-            navigation.navigate('User', userData);
+            setActiveTab("user");
+            navigation.navigate("User", userData);
           }}
         >
-          <Feather name="user" size={24} color={activeTab === 'user' ? '#92A3FD' : '#ADA4A5'} />
+          <Feather
+            name="user"
+            size={24}
+            color={activeTab === "user" ? "#92A3FD" : "#ADA4A5"}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -365,52 +474,52 @@ const programSubtitle = goalNames.length
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    position: 'relative',
+    backgroundColor: "#FFFFFF",
+    position: "relative",
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 20,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 50,
     marginBottom: 20,
   },
   welcomeText: {
     fontSize: 20,
-    color: '#ADA4A5',
+    color: "#ADA4A5",
     marginBottom: 4,
   },
   userName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1D1617',
+    fontWeight: "bold",
+    color: "#1D1617",
   },
   userSubtitle: {
     marginTop: 4,
     fontSize: 12,
-    color: '#7B6F72',
+    color: "#7B6F72",
   },
   notificationButton: {
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: '#F7F8F8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F7F8F8",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  
+
   // BMI Card
   bmiCard: {
-    flexDirection: 'row',
-    backgroundColor: '#92A3FD',
+    flexDirection: "row",
+    backgroundColor: "#92A3FD",
     borderRadius: 22,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#92A3FD',
+    shadowColor: "#92A3FD",
     shadowOffset: {
       width: 0,
       height: 10,
@@ -424,445 +533,444 @@ const styles = StyleSheet.create({
   },
   bmiTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
     marginBottom: 5,
   },
   bmiSubtitle: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     opacity: 0.7,
     marginBottom: 15,
   },
   viewMoreButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 50,
     paddingVertical: 8,
     paddingHorizontal: 15,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   viewMoreText: {
-    color: '#92A3FD',
+    color: "#92A3FD",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   bmiChart: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   bmiValue: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#C58BF2',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#C58BF2",
+    justifyContent: "center",
+    alignItems: "center",
   },
   bmiValueText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 
-scheduleCard: {
-  backgroundColor: '#F3F5FF',
-  borderRadius: 22,
-  padding: 18,
-  marginBottom: 16,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.05,
-  shadowRadius: 8,
-  elevation: 3,
-},
-scheduleHeader: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: 10,
-},
-scheduleTitle: {
-  fontSize: 18,
-  fontWeight: 'bold',
-  color: '#1D1617',
-},
-viewAllButton: {
-  backgroundColor: '#EEF6FF',
-  paddingVertical: 5,
-  paddingHorizontal: 12,
-  borderRadius: 20,
-},
-viewAllText: {
-  color: '#92A3FD',
-  fontSize: 12,
-  fontWeight: '600',
-},
-scheduleContent: {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 16,
-  padding: 15,
-  marginTop: 5,
-  shadowColor: '#000',
-  shadowOpacity: 0.05,
-  shadowRadius: 4,
-  elevation: 2,
-},
-scheduleInfo: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  marginBottom: 10,
-},
-iconContainer: {
-  width: 45,
-  height: 45,
-  borderRadius: 22,
-  backgroundColor: '#EEF6FF',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginRight: 12,
-},
-scheduleName: {
-  fontSize: 16,
-  fontWeight: '600',
-  color: '#1D1617',
-  marginBottom: 4,
-},
-scheduleNote: {
-  fontSize: 13,
-  color: '#7B6F72',
-  marginBottom: 4,
-},
-scheduleTime: {
-  fontSize: 12,
-  color: '#ADA4A5',
-},
-startButton: {
-  backgroundColor: '#92A3FD',
-  paddingVertical: 10,
-  borderRadius: 14,
-  alignItems: 'center',
-},
-startButtonText: {
-  color: '#FFFFFF',
-  fontWeight: '700',
-},
-emptySchedule: {
-  justifyContent: 'center',
-  alignItems: 'center',
-  paddingVertical: 20,
-},
-emptyText: {
-  color: '#7B6F72',
-  fontSize: 14,
-  marginVertical: 8,
-},
-createButton: {
-  backgroundColor: '#92A3FD',
-  borderRadius: 20,
-  paddingHorizontal: 18,
-  paddingVertical: 8,
-},
-createButtonText: {
-  color: '#FFFFFF',
-  fontSize: 13,
-  fontWeight: '600',
-},
-
+  scheduleCard: {
+    backgroundColor: "#F3F5FF",
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  scheduleHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  scheduleTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1D1617",
+  },
+  viewAllButton: {
+    backgroundColor: "#EEF6FF",
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  viewAllText: {
+    color: "#92A3FD",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  scheduleContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 15,
+    marginTop: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  scheduleInfo: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 10,
+  },
+  iconContainer: {
+    width: 45,
+    height: 45,
+    borderRadius: 22,
+    backgroundColor: "#EEF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  scheduleName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1D1617",
+    marginBottom: 4,
+  },
+  scheduleNote: {
+    fontSize: 13,
+    color: "#7B6F72",
+    marginBottom: 4,
+  },
+  scheduleTime: {
+    fontSize: 12,
+    color: "#ADA4A5",
+  },
+  startButton: {
+    backgroundColor: "#92A3FD",
+    paddingVertical: 10,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  startButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  emptySchedule: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  emptyText: {
+    color: "#7B6F72",
+    fontSize: 14,
+    marginVertical: 8,
+  },
+  createButton: {
+    backgroundColor: "#92A3FD",
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+  },
+  createButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+  },
 
   // Meal Card
   mealCard: {
-    backgroundColor: '#EEDCCF',
+    backgroundColor: "#EEDCCF",
     borderRadius: 22,
     padding: 20,
     marginBottom: 16,
   },
   mealTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1D1617',
+    fontWeight: "bold",
+    color: "#1D1617",
   },
   pillButtonDanger: {
-    backgroundColor: '#FFE9E8',
+    backgroundColor: "#FFE9E8",
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
   },
   pillButtonDangerText: {
-    color: '#FF6B6B',
+    color: "#FF6B6B",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   mealRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 8,
     marginBottom: 8,
   },
   mealCaloriesLeft: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1617',
+    fontWeight: "600",
+    color: "#1D1617",
   },
   mealCaloriesLabel: {
     fontSize: 12,
-    color: '#7B6F72',
+    color: "#7B6F72",
   },
   progressBar: {
     height: 10,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: "rgba(0,0,0,0.1)",
     borderRadius: 6,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressFill: {
-    width: '60%',
-    height: '100%',
-    backgroundColor: '#7ED7B5',
+    width: "60%",
+    height: "100%",
+    backgroundColor: "#7ED7B5",
     borderRadius: 6,
   },
   mealFooter: {
     marginTop: 8,
     fontSize: 12,
-    color: '#7B6F72',
+    color: "#7B6F72",
   },
-  
+
   // Today Target
   targetContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1D1617',
+    fontWeight: "bold",
+    color: "#1D1617",
   },
   checkButton: {
-    backgroundColor: '#EEF6FF',
+    backgroundColor: "#EEF6FF",
     borderRadius: 50,
     paddingVertical: 5,
     paddingHorizontal: 15,
   },
   checkButtonText: {
-    color: '#92A3FD',
+    color: "#92A3FD",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
-  
+
   // Heart Rate Card
   heartRateCard: {
-    backgroundColor: '#F7F8F8',
+    backgroundColor: "#F7F8F8",
     borderRadius: 20,
     padding: 20,
     marginTop: 10,
     marginBottom: 20,
   },
   heartRateHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   heartRateTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1D1617',
+    fontWeight: "600",
+    color: "#1D1617",
   },
   heartRateValue: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
   },
   heartRateNumber: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#92A3FD',
+    fontWeight: "bold",
+    color: "#92A3FD",
   },
   heartRateUnit: {
     fontSize: 14,
-    color: '#92A3FD',
+    color: "#92A3FD",
     marginLeft: 5,
   },
   heartRateChart: {
     height: 60,
     marginVertical: 10,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   chartLine: {
     height: 2,
-    backgroundColor: '#92A3FD',
-    width: '100%',
+    backgroundColor: "#92A3FD",
+    width: "100%",
     opacity: 0.5,
   },
   timeAgoContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   timeAgoText: {
-    color: '#C58BF2',
+    color: "#C58BF2",
     fontSize: 12,
-    fontWeight: '500',
-    backgroundColor: '#F7F8F8',
+    fontWeight: "500",
+    backgroundColor: "#F7F8F8",
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 50,
   },
-  
+
   // Stats Row
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
   },
   waterCard: {
     flex: 1,
-    backgroundColor: '#F7F8F8',
+    backgroundColor: "#F7F8F8",
     borderRadius: 20,
     padding: 15,
     marginRight: 10,
   },
   sleepCard: {
     flex: 1,
-    backgroundColor: '#F7F8F8',
+    backgroundColor: "#F7F8F8",
     borderRadius: 20,
     padding: 15,
     marginLeft: 10,
   },
   statTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1D1617',
+    fontWeight: "600",
+    color: "#1D1617",
     marginBottom: 5,
   },
   waterValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#92A3FD',
+    fontWeight: "bold",
+    color: "#92A3FD",
     marginBottom: 5,
   },
   sleepValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#92A3FD',
+    fontWeight: "bold",
+    color: "#92A3FD",
     marginBottom: 15,
   },
   statSubtitle: {
     fontSize: 10,
-    color: '#7B6F72',
+    color: "#7B6F72",
     marginBottom: 15,
   },
   waterChart: {
     height: 120,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   waterBar: {
     width: 8,
     height: 100,
-    backgroundColor: '#92A3FD',
+    backgroundColor: "#92A3FD",
     borderRadius: 4,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   sleepChart: {
     height: 80,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   sleepWave: {
     height: 40,
-    backgroundColor: '#F7F8F8',
+    backgroundColor: "#F7F8F8",
     borderBottomWidth: 2,
-    borderBottomColor: '#92A3FD',
-    borderStyle: 'solid',
+    borderBottomColor: "#92A3FD",
+    borderStyle: "solid",
     borderRadius: 20,
   },
-  
+
   // Calories Card
   caloriesCard: {
-    backgroundColor: '#F7F8F8',
+    backgroundColor: "#F7F8F8",
     borderRadius: 20,
     padding: 15,
     marginBottom: 20,
   },
   caloriesContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 10,
   },
   caloriesValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#92A3FD',
+    fontWeight: "bold",
+    color: "#92A3FD",
   },
   caloriesChart: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F7F8F8',
+    backgroundColor: "#F7F8F8",
     borderWidth: 5,
-    borderColor: '#92A3FD',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#92A3FD",
+    justifyContent: "center",
+    alignItems: "center",
   },
   caloriesProgress: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#92A3FD',
+    backgroundColor: "#92A3FD",
     opacity: 0.2,
   },
-  
+
   // Workout Progress
   workoutProgressContainer: {
     marginBottom: 20,
   },
   workoutProgressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   weeklyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EEF6FF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EEF6FF",
     borderRadius: 50,
     paddingVertical: 5,
     paddingHorizontal: 15,
   },
   weeklyButtonText: {
-    color: '#92A3FD',
+    color: "#92A3FD",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     marginRight: 5,
   },
   workoutChart: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 10,
   },
-  
+
   // Latest Workout
   latestWorkoutContainer: {
     marginBottom: 80,
   },
   latestWorkoutHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   seeMoreText: {
-    color: '#ADA4A5',
+    color: "#ADA4A5",
     fontSize: 14,
   },
   workoutItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 15,
     marginBottom: 15,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -872,54 +980,54 @@ createButtonText: {
     elevation: 2,
   },
   workoutItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   workoutIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#EEF6FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#EEF6FF",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 15,
   },
   workoutIconPurple: {
-    backgroundColor: '#F8F5FF',
+    backgroundColor: "#F8F5FF",
   },
   workoutInfo: {
     flex: 1,
   },
   workoutName: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1D1617',
+    fontWeight: "600",
+    color: "#1D1617",
     marginBottom: 5,
   },
   workoutDetails: {
     fontSize: 12,
-    color: '#7B6F72',
+    color: "#7B6F72",
   },
   workoutButton: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#F7F8F8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F7F8F8",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  
+
   // Bottom Navigation
   bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: -2,
@@ -927,7 +1035,7 @@ createButtonText: {
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 10,
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
@@ -939,11 +1047,11 @@ createButtonText: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#92A3FD',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#92A3FD",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: -20,
-    shadowColor: '#92A3FD',
+    shadowColor: "#92A3FD",
     shadowOffset: {
       width: 0,
       height: 5,

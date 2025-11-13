@@ -18,6 +18,7 @@ export default function HomeScreen({ navigation, route }) {
   const [activeTab, setActiveTab] = React.useState("home");
   const [todaySchedule, setTodaySchedule] = React.useState(null);
   const [todayMeals, setTodayMeals] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
   const [mealSummary, setMealSummary] = React.useState({
     calories: 0,
     mealType: "",
@@ -29,6 +30,8 @@ export default function HomeScreen({ navigation, route }) {
     const dd = String(today.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
   })();
+  const today = new Date();
+  const todayAI = today.toISOString().split("T")[0];
 
   React.useEffect(() => {
     const fetchUserData = async () => {
@@ -306,63 +309,87 @@ export default function HomeScreen({ navigation, route }) {
                   ]}
                 />
               </View>
-
-              <Text style={styles.mealFooter}>
-                {mealSummary.mealType || "Bữa ăn trong ngày"}
-              </Text>
             </>
           ) : (
             <View style={styles.emptySchedule}>
               <Feather name="calendar" size={24} color="#7B6F72" />
               <Text style={styles.emptyText}>Bạn chưa có thực đơn hôm nay</Text>
-<TouchableOpacity
-  style={styles.createButton}
-  onPress={async () => {
-    try {
-      // 1️⃣ Lấy mục tiêu người dùng
-      const response = await userAPI.getProfile();
-      const goal = response.data.goal;
-      const readableGoal = Array.isArray(goal) ? goal.join(", ") : goal;
-      const type = "daily";
-      console.log("🤖 Gọi AI tạo thực đơn với goal:", readableGoal, "và type:", type);
+              <TouchableOpacity
+                style={styles.createButton}
+                disabled={loading} // ✅ chặn bấm khi đang loading
+                onPress={async () => {
+                  if (loading) return;
+                  setLoading(true);
+                  try {
+                    // 1️⃣ Lấy mục tiêu người dùng
+                    const response = await userAPI.getProfile();
+                    const goal = response.data.goal;
+                    const readableGoal = Array.isArray(goal)
+                      ? goal.join(", ")
+                      : goal;
+                    const type = "daily";
+                    console.log(
+                      "🤖 Gọi AI tạo thực đơn với goal:",
+                      readableGoal,
+                      "và type:",
+                      type
+                    );
 
-      // 2️⃣ Gọi AI tạo thực đơn DAILY
-      const aiRes = await mealScheduleAPI.generateDailyAIPlan({ goal: readableGoal, type });
-      const mealPlanId = aiRes?.data?.data?._id;
-      const meals = aiRes?.data?.data?.meals || [];
+                    // 2️⃣ Gọi AI tạo thực đơn DAILY
+                    const aiRes = await mealScheduleAPI.generateDailyAIPlan({
+                      goal: readableGoal,
+                      type,
+                    });
+                    const mealPlanId = aiRes?.data?.data?._id;
+                    const meals = aiRes?.data?.data?.meals || [];
 
-      if (!mealPlanId) {
-        console.warn("⚠️ Không tìm thấy mealPlanId từ AI response:", JSON.stringify(aiRes.data, null, 2));
-        return;
-      }
+                    if (!mealPlanId) {
+                      console.warn(
+                        "⚠️ Không tìm thấy mealPlanId từ AI response:",
+                        JSON.stringify(aiRes.data, null, 2)
+                      );
+                      return;
+                    }
 
-      console.log("✅ AI tạo MealPlan thành công:", mealPlanId);
+                    console.log("✅ AI tạo MealPlan thành công:", mealPlanId);
 
-      // 3️⃣ Gán meal plan đó cho user (áp dụng vào lịch)
-      await mealPlanAPI.applyToUser({
-        mealPlanId,
-        startDate: todayStr
-      });
+                    // 3️⃣ Gán meal plan đó cho user (áp dụng vào lịch)
+                    await mealScheduleAPI.applyMealPlan({
+                      mealPlanId,
+                      startDate: todayAI,
+                    });
 
-      // 4️⃣ Lấy lại danh sách thực đơn hôm nay
-      const res = await mealScheduleAPI.getByDate(todayStr);
-      setTodayMeals(res.data);
+                    // 4️⃣ Lấy lại danh sách thực đơn hôm nay
+                    const res = await mealScheduleAPI.getByDate(todayStr);
+                    setTodayMeals(res.data);
 
-      console.log("🎉 Đã áp dụng thực đơn thành công!");
-    } catch (err) {
-      if (err.response) {
-        console.warn("⚠️ Lỗi tạo thực đơn (response):", JSON.stringify(err.response.data, null, 2));
-      } else if (err.request) {
-        console.warn("⚠️ Lỗi tạo thực đơn (request):", err.request);
-      } else {
-        console.warn("⚠️ Lỗi tạo thực đơn (message):", err.message);
-      }
-    }
-  }}
->
-  <Text style={styles.createButtonText}>Tạo thực đơn ngay</Text>
-</TouchableOpacity>
-
+                    console.log("🎉 Đã áp dụng thực đơn thành công!");
+                  } catch (err) {
+                    if (err.response) {
+                      console.warn(
+                        "⚠️ Lỗi tạo thực đơn (response):",
+                        JSON.stringify(err.response.data, null, 2)
+                      );
+                    } else if (err.request) {
+                      console.warn(
+                        "⚠️ Lỗi tạo thực đơn (request):",
+                        err.request
+                      );
+                    } else {
+                      console.warn(
+                        "⚠️ Lỗi tạo thực đơn (message):",
+                        err.message
+                      );
+                    }
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                <Text style={styles.createButtonText}>
+                  {loading ? "Đang tạo..." : "Tạo thực đơn ngay"}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>

@@ -10,6 +10,7 @@ import FoodScreen from '../src/screens/FoodScreen';
 import ForgotPasswordScreen from '../src/screens/ForgotPasswordScreen';
 import GoalSelectionScreen from '../src/screens/GoalSelectionScreen';
 import HomeScreen from '../src/screens/HomeScreen';
+import MealPlanSelectScreen from '../src/screens/MealPlanSelectScreen';
 import MenuDetailScreen from '../src/screens/MenuDetailScreen';
 import MenuScreen from '../src/screens/MenuScreen';
 import OnboardingScreen from '../src/screens/OnBoardingScreen';
@@ -51,8 +52,9 @@ export default function App() {
       <Stack.Screen name="Basic" component={BasicScreen} />
       <Stack.Screen name="ExerciseDetail" component={ExerciseDetailScreen} />
       <Stack.Screen name="TrainingList" component={TrainingListScreen} />
-    <Stack.Screen name="TrainingDetail" component={TrainingDetailScreen} />
-    <Stack.Screen name="ActivityHistory" component={ActivityHistoryScreen} options={{ title: 'Lịch sử hoạt động', headerShown: false }} />
+      <Stack.Screen name="TrainingDetail" component={TrainingDetailScreen} />
+      <Stack.Screen name="MealPlanSelect" component={MealPlanSelectScreen} />
+      <Stack.Screen name="ActivityHistory" component={ActivityHistoryScreen} options={{ title: 'Lịch sử hoạt động', headerShown: false }} />
 
     </Stack.Navigator>
   );

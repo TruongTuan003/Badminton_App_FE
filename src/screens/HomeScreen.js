@@ -2,6 +2,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React from "react";
 import {
+  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,8 +10,11 @@ import {
   View,
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
+import ChatBotAI from "../components/ChatBotAI";
 import { mealScheduleAPI, scheduleAPI, userAPI } from "../services/api";
 import { calculateBMI } from "../utils/bmiCalculator";
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
 export default function HomeScreen({ navigation, route }) {
   // Lấy thông tin người dùng từ API
@@ -436,14 +440,8 @@ export default function HomeScreen({ navigation, route }) {
             />
           </View>
         </View>
-
-        {/* Latest Workout removed to match simplified mock */}
-
-        {/* Bottom spacing */}
-        <View style={styles.bottomSpacing}></View>
       </ScrollView>
-
-      {/* Bottom Navigation */}
+      <ChatBotAI />
       <View style={styles.bottomNav}>
         <TouchableOpacity
           style={styles.navItem}

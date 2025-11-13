@@ -355,7 +355,10 @@ export default function MenuDetailScreen({ navigation }) {
       </ScrollView>
 
       {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity
+       style={styles.fab}
+       onPress={() => navigation.navigate("MealPlanSelect")}
+       >
         <Feather name="plus" size={26} color="#FFFFFF" />
       </TouchableOpacity>
 

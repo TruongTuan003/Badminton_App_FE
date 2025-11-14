@@ -94,10 +94,6 @@ export default function MenuScreen({ navigation }) {
       d.setDate(today.getDate() - i);
       weekDates.push(new Date(d));
     }
-    // Dữ liệu mealsCookie là meals từng ngày tương ứng (cần fetch từ backend lịch sử, tạm thời chỉ tính hôm nay nếu không có API lấy nhiều ngày)
-    // => Ở bản này chỉ lấy hôm nay làm mẫu cho tất cả 7 ngày
-    // Future: map thêm API lấy mealSchedule tuần.
-    // TÍNH cho hôm nay
     let sumCalories=0, sumProteins=0, sumFats=0, sumCarbs=0;
     todayMeals.forEach(meal => {
       const m = meal.mealId || {};
@@ -106,7 +102,6 @@ export default function MenuScreen({ navigation }) {
       sumFats += m.fat ? Number(m.fat) : 0;
       sumCarbs += m.carbs ? Number(m.carbs) : 0;
     });
-    // Biểu đồ dinh dưỡng theo tuần (tạm thời chỉ lặp chính nó cho đủ 7 cột)
     const nutritionChart = weekDates.map((dateObj,i) => ({
         day: daysOfWeek[dateObj.getDay()],
         value: sumCalories,
@@ -126,31 +121,6 @@ export default function MenuScreen({ navigation }) {
 
   const periodOptions = ['Daily', 'Weekly', 'Monthly'];
   const mealOptions = ['Bữa sáng', 'Bữa trưa', 'Bữa tối', 'Bữa phụ'];
-
-  // Dữ liệu biểu đồ dinh dưỡng
-  // const nutritionData = [
-  //   { day: 'Sun', value: 65 },
-  //   { day: 'Mon', value: 78 },
-  //   { day: 'Tue', value: 82 },
-  //   { day: 'Wed', value: 75 },
-  //   { day: 'Thu', value: 88, active: true },
-  //   { day: 'Fri', value: 72 },
-  //   { day: 'Sat', value: 80 },
-  // ];
-
-  // Dữ liệu thống kê dinh dưỡng
-  // const nutritionStats = [
-  //   { name: 'Calories', value: '82%', trend: '+' },
-  //   { name: 'Fibre', value: '88%', trend: '+' },
-  //   { name: 'Sugar', value: '39%', trend: '+' },
-  //   { name: 'Fats', value: '42%', trend: '+' },
-  // ];
-
-  // Dữ liệu món ăn hôm nay (thay thế bằng API)
-  // const todayMeals = [...];
-  // Sử dụng state meals:
-  // const todayMeals = meals; // bỏ đoạn này
-
   const renderNutritionChart = () => (
     <View style={styles.chartContainer}>
       <View style={styles.chartHeader}>

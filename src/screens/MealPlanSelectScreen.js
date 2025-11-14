@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SceneMap, TabBar, TabView } from "react-native-tab-view";
 import { mealScheduleAPI } from "../services/api";
@@ -29,6 +30,8 @@ export default function MealPlanSelectScreen({ navigation }) {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showPicker, setShowPicker] = useState(false);
 
   // Tab state
   const [index, setIndex] = useState(0);
@@ -62,9 +65,10 @@ export default function MealPlanSelectScreen({ navigation }) {
 
   const handleSelectPlan = async (plan) => {
     try {
+      const isoDate = selectedDate.toISOString().split("T")[0];
       await mealScheduleAPI.applyMealPlan({
         mealPlanId: plan._id,
-        startDate: new Date().toISOString().split("T")[0],
+        startDate: isoDate,
       });
       alert("Đã áp dụng thực đơn thành công!");
       navigation.goBack();
@@ -162,6 +166,15 @@ export default function MealPlanSelectScreen({ navigation }) {
       <Modal visible={!!selectedPlan} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
+            <DateTimePickerModal
+              isVisible={showPicker}
+              mode="date"
+              onConfirm={(date) => {
+                setSelectedDate(date);
+                setShowPicker(false);
+              }}
+              onCancel={() => setShowPicker(false)}
+            />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{selectedPlan?.name}</Text>
               <TouchableOpacity onPress={() => setSelectedPlan(null)}>
@@ -246,6 +259,28 @@ export default function MealPlanSelectScreen({ navigation }) {
                 ))}
               </ScrollView>
             )}
+            {/* Chọn ngày bắt đầu */}
+            <TouchableOpacity
+              style={{
+                padding: 12,
+                borderWidth: 1,
+                borderColor: COLORS.primary,
+                borderRadius: 10,
+                marginTop: 10,
+                marginBottom: 10,
+              }}
+              onPress={() => setShowPicker(true)}
+            >
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: COLORS.primary,
+                  fontSize: 15,
+                }}
+              >
+                Ngày bắt đầu: {selectedDate.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.applyButton}

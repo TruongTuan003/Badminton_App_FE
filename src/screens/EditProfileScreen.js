@@ -57,19 +57,8 @@ export default function EditProfileScreen({ navigation, route }) {
         return;
       }
       
-      // Đảm bảo sử dụng đúng id từ MongoDB
-      const userId = userData?.id;
-      
-      if (!userId) {
-        console.error('MongoDB user ID not found:', userData);
-        Alert.alert('Lỗi', 'Không tìm thấy ID người dùng. Vui lòng đăng nhập lại.');
-        navigation.navigate('Auth');
-        return;
-      }
-      
-      // Chuẩn bị dữ liệu cập nhật
+      // Chuẩn bị dữ liệu cập nhật (userId được lấy từ JWT token ở backend)
       const profileData = {
-        userId,
         name,
         ...(gender ? { gender } : {}),
         ...(age ? { age: parseInt(age) } : {}),

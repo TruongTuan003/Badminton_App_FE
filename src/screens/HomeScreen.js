@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import ChatBotAI from "../components/ChatBotAI";
-import { mealScheduleAPI, scheduleAPI, userAPI } from "../services/api";
+import { mealScheduleAPI, scheduleAPI, trainingLogAPI, userAPI } from "../services/api";
 import { calculateBMI } from "../utils/bmiCalculator";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
@@ -23,6 +23,7 @@ export default function HomeScreen({ navigation, route }) {
   const [todaySchedule, setTodaySchedule] = React.useState(null);
   const [todayMeals, setTodayMeals] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
+  const [trainingLogs, setTrainingLogs] = React.useState([]);
   const [mealSummary, setMealSummary] = React.useState({
     calories: 0,
     mealType: "",
@@ -79,7 +80,6 @@ export default function HomeScreen({ navigation, route }) {
         setTodaySchedule(null);
       }
     } catch (error) {
-      console.error("❌ Error fetching schedule:", error);
       setTodaySchedule(null);
     }
   }, [todayStr]);
@@ -123,18 +123,32 @@ export default function HomeScreen({ navigation, route }) {
     }
   }, [todayStr]);
 
+  // Fetch training logs
+  const fetchTrainingLogs = React.useCallback(async () => {
+    try {
+      const response = await trainingLogAPI.getLogByUser();
+      const logs = response.data || [];
+      setTrainingLogs(logs);
+    } catch (error) {
+      console.error("Error fetching training logs:", error);
+      setTrainingLogs([]);
+    }
+  }, []);
+
   React.useEffect(() => {
     fetchTodayMeals();
     fetchTodaySchedule();
-  }, [fetchTodayMeals, fetchTodaySchedule]);
+    fetchTrainingLogs();
+  }, [fetchTodayMeals, fetchTodaySchedule, fetchTrainingLogs]);
 
   useFocusEffect(
     React.useCallback(() => {
       // Tự động refresh khi màn hình lấy focus
       fetchTodayMeals();
       fetchTodaySchedule();
+      fetchTrainingLogs();
       return undefined;
-    }, [fetchTodayMeals, fetchTodaySchedule])
+    }, [fetchTodayMeals, fetchTodaySchedule, fetchTrainingLogs])
   );
 
   // Lấy chiều cao và cân nặng từ userData hoặc sử dụng giá trị mặc định
@@ -178,17 +192,44 @@ export default function HomeScreen({ navigation, route }) {
     heightUnit
   );
 
-  // Dữ liệu mẫu cho biểu đồ
-  const workoutData = {
-    labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-    datasets: [
-      {
-        data: [20, 45, 28, 80, 99, 43, 50],
-        color: () => "#92A3FD",
-        strokeWidth: 2,
-      },
-    ],
+  // Tính toán dữ liệu cho biểu đồ từ TrainingLog
+  const getWorkoutData = () => {
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const today = new Date();
+    const data = [0, 0, 0, 0, 0, 0, 0]; // Khởi tạo mảng 7 ngày
+
+    // Lấy 7 ngày gần nhất (từ 6 ngày trước đến hôm nay)
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      
+      // Đặt thời gian về 0:00:00 để so sánh chính xác
+      const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+      const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+
+      // Đếm số training logs trong ngày này
+      const logsInDay = trainingLogs.filter(log => {
+        const logDate = new Date(log.date);
+        return logDate >= startOfDay && logDate <= endOfDay;
+      });
+
+      // Lưu số lượng vào mảng (index 0 = 6 ngày trước, index 6 = hôm nay)
+      data[6 - i] = logsInDay.length;
+    }
+
+    return {
+      labels: dayNames,
+      datasets: [
+        {
+          data: data,
+          color: () => "#92A3FD",
+          strokeWidth: 2,
+        },
+      ],
+    };
   };
+
+  const workoutData = getWorkoutData();
 
   return (
     <View style={styles.container}>
@@ -412,6 +453,7 @@ export default function HomeScreen({ navigation, route }) {
         {/* Workout Progress */}
         <View style={styles.workoutProgressContainer}>
           <View style={styles.workoutProgressHeader}>
+            <Text style={styles.workoutProgressTitle}>Số bài tập đã hoàn thành</Text>
             <View style={styles.weeklyButton}>
               <Text style={styles.weeklyButtonText}>Weekly</Text>
               <Feather name="chevron-down" size={16} color="#92A3FD" />
@@ -961,6 +1003,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 15,
+  },
+  workoutProgressTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1D1617",
   },
   weeklyButton: {
     flexDirection: "row",

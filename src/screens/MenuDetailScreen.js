@@ -2,7 +2,6 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
   Alert,
-  FlatList,
   Image,
   Modal,
   ScrollView,
@@ -11,32 +10,33 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { mealScheduleAPI } from "../services/api";
 import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
 
 export default function MenuDetailScreen({ navigation }) {
   const today = new Date();
-  const [currentYear, setCurrentYear] = React.useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = React.useState(today.getMonth()); // 0-11
-  const [selectedDate, setSelectedDate] = React.useState(
-    new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  );
-  const [selectedDateIndex, setSelectedDateIndex] = React.useState(3);
-  const [pickerVisible, setPickerVisible] = React.useState(false);
+  const [selectedDate, setSelectedDate] = React.useState(today);
+  const [calendarVisible, setCalendarVisible] = React.useState(false);
   const [meals, setMeals] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+
+  const formatDateOnly = (date) => {
+    // Format date thành YYYY-MM-DD (local time, không UTC)
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   React.useEffect(() => {
     const fetchMeals = async () => {
       setLoading(true);
       setError(null);
       try {
-        const yyyy = selectedDate.getFullYear();
-        const mm = String(selectedDate.getMonth() + 1).padStart(2, "0");
-        const dd = String(selectedDate.getDate()).padStart(2, "0");
-        const dateStr = `${yyyy}-${mm}-${dd}`;
+        const dateStr = formatDateOnly(selectedDate);
         const res = await mealScheduleAPI.getByDate(dateStr);
         setMeals(res.data || []);
       } catch (err) {
@@ -52,43 +52,6 @@ export default function MenuDetailScreen({ navigation }) {
     };
     fetchMeals();
   }, [selectedDate]);
-
-  const monthNames = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-
-  function clampDay(year, month, day) {
-    const lastDay = new Date(year, month + 1, 0).getDate();
-    return Math.max(1, Math.min(day, lastDay));
-  }
-
-  function getWeekDays(centerDate) {
-    const year = centerDate.getFullYear();
-    const month = centerDate.getMonth();
-    // tạo dải 7 ngày xung quanh ngày đang chọn (-3..+3), giữ trong tháng
-    const startDay = clampDay(year, month, centerDate.getDate() - 3);
-    const daysArr = [];
-    for (let i = 0; i < 7; i++) {
-      const d = clampDay(year, month, startDay + i);
-      const dateObj = new Date(year, month, d);
-      const dow = dateObj.toLocaleDateString("en-US", { weekday: "short" });
-      daysArr.push({ label: dow, date: String(d), dateObj });
-    }
-    return daysArr;
-  }
-
-  const days = getWeekDays(selectedDate);
 
   // Thay cho currentMeals:
   const currentMeals = meals;
@@ -158,38 +121,6 @@ export default function MenuDetailScreen({ navigation }) {
     },
   };
 
-  function changeMonth(delta) {
-    let m = currentMonth + delta;
-    let y = currentYear;
-    if (m < 0) {
-      m = 11;
-      y -= 1;
-    }
-    if (m > 11) {
-      m = 0;
-      y += 1;
-    }
-    setCurrentMonth(m);
-    setCurrentYear(y);
-    const midDay = clampDay(y, m, 15);
-    const newDate = new Date(y, m, midDay);
-    setSelectedDate(newDate);
-    setSelectedDateIndex(3);
-  }
-
-  function openPicker() {
-    setPickerVisible(true);
-  }
-
-  function onPickMonthYear(m, y) {
-    setCurrentMonth(m);
-    setCurrentYear(y);
-    const midDay = clampDay(y, m, 15);
-    const newDate = new Date(y, m, midDay);
-    setSelectedDate(newDate);
-    setSelectedDateIndex(3);
-    setPickerVisible(false);
-  }
 
   // Render lại meal section cho đúng dữ liệu từ mealSchedule: gồm mealId, meal_type, time...
   const renderMealSection = () => (
@@ -291,61 +222,39 @@ export default function MenuDetailScreen({ navigation }) {
           <Ionicons name="chevron-back" size={22} color={COLORS.black} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Thực đơn</Text>
-        <TouchableOpacity style={styles.iconButton}>
-          <Feather name="more-vertical" size={22} color={COLORS.black} />
+        <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={() => setCalendarVisible(true)}
+        >
+          <Feather name="calendar" size={22} color={COLORS.black} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.monthRow}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity onPress={() => changeMonth(-1)}>
-            <Feather name="chevron-left" size={18} color={COLORS.gray} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={openPicker}>
-            <Text
-              style={styles.monthText}
-            >{`${monthNames[currentMonth]} ${currentYear}`}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => changeMonth(1)}>
-            <Feather name="chevron-right" size={18} color={COLORS.gray} />
-          </TouchableOpacity>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.daysRow}
+      {/* Ngày đang chọn với nút chuyển ngày */}
+      <View style={styles.dateContainer}>
+        <TouchableOpacity
+          style={styles.dateNavButton}
+          onPress={() => {
+            const prevDate = new Date(selectedDate);
+            prevDate.setDate(prevDate.getDate() - 1);
+            setSelectedDate(prevDate);
+          }}
         >
-          {days.map((d, idx) => {
-            const active = idx === selectedDateIndex;
-            return (
-              <TouchableOpacity
-                key={`${idx}-${d.dateObj.toISOString().split("T")[0]}`}
-                style={[styles.dayPill, active && styles.dayPillActive]}
-                onPress={() => {
-                  setSelectedDateIndex(idx);
-                  setSelectedDate(d.dateObj);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.dayPillLabel,
-                    active && styles.dayPillLabelActive,
-                  ]}
-                >
-                  {d.label}
-                </Text>
-                <Text
-                  style={[
-                    styles.dayPillDate,
-                    active && styles.dayPillDateActive,
-                  ]}
-                >
-                  {d.date}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+          <Feather name="chevron-left" size={18} color={COLORS.black} />
+        </TouchableOpacity>
+        <Text style={styles.dateText}>
+          Ngày: {formatDateOnly(selectedDate)}
+        </Text>
+        <TouchableOpacity
+          style={styles.dateNavButton}
+          onPress={() => {
+            const nextDate = new Date(selectedDate);
+            nextDate.setDate(nextDate.getDate() + 1);
+            setSelectedDate(nextDate);
+          }}
+        >
+          <Feather name="chevron-right" size={18} color={COLORS.black} />
+        </TouchableOpacity>
       </View>
 
       {/* Content */}
@@ -362,79 +271,36 @@ export default function MenuDetailScreen({ navigation }) {
         <Feather name="plus" size={26} color="#FFFFFF" />
       </TouchableOpacity>
 
-      {/* Month/Year Picker Modal */}
-      <Modal
-        transparent
-        visible={pickerVisible}
-        animationType="fade"
-        onRequestClose={() => setPickerVisible(false)}
-      >
+      {/* 📅 Modal hiển thị Calendar */}
+      <Modal visible={calendarVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Chọn tháng/năm</Text>
-            <View style={styles.pickerRow}>
-              <FlatList
-                data={monthNames.map((n, i) => ({ name: n, value: i }))}
-                keyExtractor={(item) => String(item.value)}
-                style={styles.pickerList}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.pickerItem,
-                      item.value === currentMonth && styles.pickerItemActive,
-                    ]}
-                    onPress={() => setCurrentMonth(item.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.pickerItemText,
-                        item.value === currentMonth &&
-                          styles.pickerItemTextActive,
-                      ]}
-                    >
-                      {item.name}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-              <FlatList
-                data={Array.from({ length: 11 }, (_, i) => 2020 + i)}
-                keyExtractor={(item) => String(item)}
-                style={styles.pickerList}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.pickerItem,
-                      item === currentYear && styles.pickerItemActive,
-                    ]}
-                    onPress={() => setCurrentYear(item)}
-                  >
-                    <Text
-                      style={[
-                        styles.pickerItemText,
-                        item === currentYear && styles.pickerItemTextActive,
-                      ]}
-                    >
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalButtonGhost}
-                onPress={() => setPickerVisible(false)}
-              >
-                <Text style={styles.modalButtonGhostText}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => onPickMonthYear(currentMonth, currentYear)}
-              >
-                <Text style={styles.modalButtonText}>Xong</Text>
-              </TouchableOpacity>
-            </View>
+            <Calendar
+              current={formatDateOnly(selectedDate)}
+              onDayPress={(day) => {
+                console.log("📅 Chọn ngày:", day.dateString);
+                setSelectedDate(new Date(day.dateString));
+                setCalendarVisible(false);
+              }}
+              markedDates={{
+                [formatDateOnly(selectedDate)]: {
+                  selected: true,
+                  selectedColor: "#92A3FD",
+                },
+              }}
+              theme={{
+                todayTextColor: "#92A3FD",
+                arrowColor: "#92A3FD",
+                textDayFontFamily: "System",
+                textMonthFontWeight: "bold",
+              }}
+            />
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setCalendarVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Đóng</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -468,46 +334,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  monthRow: {
-    flexDirection: "column",
+  dateContainer: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 6,
+    marginTop: 10,
+    marginBottom: 10,
+    paddingHorizontal: 20,
   },
-  monthText: {
-    marginHorizontal: 10,
-    color: COLORS.gray,
-  },
-  daysRow: {
-    paddingHorizontal: 10,
-    paddingVertical: 4, // tăng lên chút theo ScheduleScreen thay vì 2
-  },
-  dayPill: {
-    width: 70,
-    height: 84,
+  dateNavButton: {
+    width: 32,
+    height: 32,
     borderRadius: 16,
     backgroundColor: COLORS.inputBackground,
-    marginHorizontal: 6,
     justifyContent: "center",
     alignItems: "center",
   },
-  dayPillActive: {
-    backgroundColor: COLORS.primary,
-  },
-  dayPillLabel: {
+  dateText: {
+    textAlign: "center",
+    fontSize: 16,
     color: COLORS.gray,
-    marginBottom: 2,
-  },
-  dayPillLabelActive: {
-    color: COLORS.white,
-  },
-  dayPillDate: {
-    color: COLORS.black,
-    fontWeight: FONTS.semiBold,
-    fontSize: 18,
-  },
-  dayPillDateActive: {
-    color: COLORS.white,
+    marginHorizontal: 8,
   },
   content: {
     flex: 1,
@@ -670,69 +517,26 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
   modalCard: {
-    width: "85%",
     backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
+    paddingBottom: 40,
   },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: FONTS.semiBold,
-    color: COLORS.black,
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  pickerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  pickerList: {
-    height: 220,
-    width: "48%",
-  },
-  pickerItem: {
-    paddingVertical: 2,
-    alignItems: "center",
-    borderRadius: 10,
-  },
-  pickerItemActive: {
-    backgroundColor: "#EEF6FF",
-  },
-  pickerItemText: {
-    color: COLORS.black,
-  },
-  pickerItemTextActive: {
-    color: COLORS.primary,
-    fontWeight: FONTS.bold,
-  },
-  modalActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
+  closeButton: {
     marginTop: 10,
-  },
-  modalButton: {
+    marginHorizontal: 20,
     backgroundColor: COLORS.primary,
     paddingVertical: 10,
-    paddingHorizontal: 16,
     borderRadius: 10,
-    marginLeft: 10,
   },
-  modalButtonText: {
+  closeButtonText: {
+    textAlign: "center",
     color: COLORS.white,
-    fontWeight: FONTS.semiBold,
-  },
-  modalButtonGhost: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-  },
-  modalButtonGhostText: {
-    color: COLORS.gray,
     fontWeight: FONTS.semiBold,
   },
   bottomSpacing: {

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 
-const API_URL = 'http://192.168.10.70:3000/api'; 
+const API_URL = 'http://192.168.10.47:3000/api'; 
 
 
 
@@ -53,6 +53,8 @@ export const scheduleAPI = {
     api.post(`/schedules/${scheduleId}/add-workout`, data),
   updateDetailStatus: (detailId, status) =>
     api.put(`/schedules/detail/${detailId}`, { status }),
+  updateDetailStatusByWorkout: (workoutId, status, date = null) =>
+    api.put(`/schedules/detail-by-workout`, { workoutId, status, date }),
   removeWorkout: (scheduleId, trainingId) =>
     api.delete(`/schedules/${scheduleId}/remove-training/${trainingId}`),
 };
@@ -77,6 +79,15 @@ export const mealScheduleAPI = {
 export const trainingLogAPI = {
   getLogByUser: () => api.get('/training-logs'),
   createLog: (data) => api.post('/training-logs', data),
+};
+
+export const trainingPlanAPI = {
+  getAll: () => api.get('/training-plans'),
+  getById: (id) => api.get(`/training-plans/${id}`),
+  getByLevel: (level) => api.get(`/training-plans/level/${encodeURIComponent(level)}`),
+  getByGoal: (goal) => api.get(`/training-plans/goal/${encodeURIComponent(goal)}`),
+  applyPlan: (planId, startDate, replaceExisting = false) => 
+    api.post('/training-plans/apply', { planId, startDate, replaceExisting }),
 };
 
 export default api;

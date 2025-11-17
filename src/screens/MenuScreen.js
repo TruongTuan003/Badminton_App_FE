@@ -338,7 +338,12 @@ export default function MenuScreen({ navigation }) {
         {renderTodayMenu()}
         {renderTodayMeals()}
       </ScrollView>
-
+      <TouchableOpacity
+       style={styles.fab}
+       onPress={() => navigation.navigate("MealPlanSelect")}
+       >
+        <Feather name="plus" size={26} color="#FFFFFF" />
+      </TouchableOpacity>
       {renderPeriodModal()}
       {renderMealModal()}
     </View>
@@ -616,5 +621,17 @@ barLabelActive: {
   modalItemTextActive: {
     color: COLORS.primary,
     fontWeight: FONTS.semiBold,
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    ...SHADOWS.medium,
   },
 });

@@ -1,6 +1,6 @@
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { authAPI } from "../services/api";
 import { COLORS, FONTS, SHADOWS, SIZES, SPACING } from '../styles/commonStyles';
 
@@ -15,36 +15,76 @@ export default function RegisterScreen({ navigation }) {
   const [passwordError, setPasswordError] = useState('');
   const [hasStartedTypingConfirmPassword, setHasStartedTypingConfirmPassword] = useState(false);
 
+const handleResendOtp = async (userEmail) => {
+  try {
+    await authAPI.resendOtp({ email: userEmail });
+    Alert.alert(
+      'Thành công',
+      'OTP mới đã được gửi đến email của bạn',
+      [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate("OTPVerification", { userData: { email: userEmail } })
+        }
+      ]
+    );
+  } catch (error) {
+    Alert.alert('Lỗi', error.response?.data?.message || "Không thể gửi lại OTP");
+  }
+};
+
 const handleRegister = async () => {
   try {
     if (!fullName || !email || !password || !confirmPassword) {
-      alert('Vui lòng điền đầy đủ thông tin');
+      Alert.alert('Thông báo', 'Vui lòng điền đầy đủ thông tin');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      alert('Email không hợp lệ');
+      Alert.alert('Thông báo', 'Email không hợp lệ');
       return;
     }
 
     if (password.length < 6) {
-      alert('Mật khẩu phải có ít nhất 6 ký tự');
+      Alert.alert('Thông báo', 'Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
 
     if (password !== confirmPassword) {
-      alert('Mật khẩu xác nhận không khớp');
+      Alert.alert('Thông báo', 'Mật khẩu xác nhận không khớp');
       return;
     }
 
     const payload = { name: fullName, email, password };
     const res = await authAPI.register(payload);
-    alert("Đăng ký thành công!");
-
-    navigation.navigate("OTPVerification", { userData: { email } });
+    Alert.alert(
+      'Thành công',
+      'Kiểm tra email của bạn để nhận mã OTP xác thực.',
+      [{ text: 'OK', onPress: () => navigation.navigate("OTPVerification", { userData: { email } }) }]
+    );
   } catch (error) {
-    alert(error.response?.data?.message || "Có lỗi xảy ra khi đăng ký");
+    const errorMessage = error.response?.data?.message;
+    
+    // Kiểm tra nếu email đang chờ xác thực OTP
+    if (error.response?.status === 409 && errorMessage?.includes('chờ xác thực OTP')) {
+      Alert.alert(
+        'Email chưa xác thực',
+        'Email này đang chờ xác thực OTP. Bạn có muốn gửi lại mã OTP không?',
+        [
+          {
+            text: 'Hủy',
+            style: 'cancel'
+          },
+          {
+            text: 'Gửi lại OTP',
+            onPress: () => handleResendOtp(email)
+          }
+        ]
+      );
+    } else {
+      Alert.alert('Lỗi', errorMessage || "Có lỗi xảy ra khi đăng ký");
+    }
   }
 };
 

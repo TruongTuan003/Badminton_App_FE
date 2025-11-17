@@ -337,20 +337,19 @@ export default function HomeScreen({ navigation, route }) {
                     // 1️⃣ Lấy mục tiêu người dùng
                     const response = await userAPI.getProfile();
                     const goal = response.data.goal;
-                    const readableGoal = Array.isArray(goal)
-                      ? goal.join(", ")
-                      : goal;
+                    // Gửi goals dưới dạng array để backend xử lý
+                    const goals = Array.isArray(goal) ? goal : [goal];
                     const type = "daily";
                     console.log(
-                      "🤖 Gọi AI tạo thực đơn với goal:",
-                      readableGoal,
+                      "🤖 Gọi AI tạo thực đơn với goals:",
+                      goals,
                       "và type:",
                       type
                     );
 
                     // 2️⃣ Gọi AI tạo thực đơn DAILY
                     const aiRes = await mealScheduleAPI.generateDailyAIPlan({
-                      goal: readableGoal,
+                      goals: goals,
                       type,
                     });
                     const mealPlanId = aiRes?.data?.data?._id;

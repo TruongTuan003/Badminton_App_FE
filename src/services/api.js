@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 
-const API_URL = 'http://192.168.10.47:3000/api'; 
+const API_URL = 'http://192.168.10.46:3000/api'; 
+
 
 
 
@@ -26,7 +27,7 @@ api.interceptors.request.use(
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   verifyOtp: (email, otp) => api.post('/auth/verify-otp', { email, otp }),
-  resendOtp: (email) => api.post('/auth/resend-otp', { email }),
+  resendOtp: (data) => api.post('/auth/resend-otp', data),
   login: (email, password) => api.post('/auth/login', { email, password }),
   updateProfile: (userData) => api.post('/auth/update-profile', userData),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),

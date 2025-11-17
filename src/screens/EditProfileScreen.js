@@ -15,6 +15,12 @@ import { userAPI } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
+const GOALS = [
+  { id: 1, title: 'Nâng cao kỹ năng cầu lông', icon: 'badminton' },
+  { id: 2, title: 'Cải thiện thể chất', icon: 'run' },
+  { id: 3, title: 'Quản lí hình thể và sức khỏe', icon: 'heart' }
+];
+
 export default function EditProfileScreen({ navigation, route }) {
   // Lấy thông tin người dùng từ route params hoặc API
   const [userData, setUserData] = useState(route.params || null);
@@ -23,6 +29,7 @@ export default function EditProfileScreen({ navigation, route }) {
   const [age, setAge] = useState(userData?.age ? String(userData.age) : '');
   const [weight, setWeight] = useState(userData?.weight ? String(userData.weight) : '');
   const [height, setHeight] = useState(userData?.height ? String(userData.height) : '');
+  const [selectedGoals, setSelectedGoals] = useState(userData?.goal || []);
   const [weightUnit, setWeightUnit] = useState('KG');
   const [heightUnit, setHeightUnit] = useState('CM');
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
@@ -40,6 +47,7 @@ export default function EditProfileScreen({ navigation, route }) {
           setAge(data.age ? String(data.age) : '');
           setWeight(data.weight ? String(data.weight) : '');
           setHeight(data.height ? String(data.height) : '');
+          setSelectedGoals(data.goal || []);
         } catch (error) {
           console.error('Error fetching user data:', error);
           Alert.alert('Lỗi', 'Không thể tải thông tin người dùng. Vui lòng thử lại sau.');
@@ -49,6 +57,16 @@ export default function EditProfileScreen({ navigation, route }) {
     }
   }, [userData]);
 
+  const toggleGoal = (goalTitle) => {
+    setSelectedGoals(prevGoals => {
+      if (prevGoals.includes(goalTitle)) {
+        return prevGoals.filter(g => g !== goalTitle);
+      } else {
+        return [...prevGoals, goalTitle];
+      }
+    });
+  };
+
   const handleSave = async () => {
     try {
       // Kiểm tra xem có trường nào đã điền chưa
@@ -57,9 +75,15 @@ export default function EditProfileScreen({ navigation, route }) {
         return;
       }
       
+      if (selectedGoals.length === 0) {
+        Alert.alert('Lỗi', 'Vui lòng chọn ít nhất một mục tiêu');
+        return;
+      }
+      
       // Chuẩn bị dữ liệu cập nhật (userId được lấy từ JWT token ở backend)
       const profileData = {
         name,
+        goals: selectedGoals,
         ...(gender ? { gender } : {}),
         ...(age ? { age: parseInt(age) } : {}),
         ...(weight ? { weight: parseInt(weight) } : {}),
@@ -211,6 +235,40 @@ export default function EditProfileScreen({ navigation, route }) {
             ]}>CM</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Your Goals */}
+        <View style={styles.goalsSection}>
+          <Text style={styles.goalsSectionTitle}>Mục tiêu của bạn</Text>
+          <Text style={styles.goalsSectionSubtitle}>Chọn một hoặc nhiều mục tiêu</Text>
+          
+          <View style={styles.goalsContainer}>
+            {GOALS.map((goal) => (
+              <TouchableOpacity
+                key={goal.id}
+                style={[
+                  styles.goalButton,
+                  selectedGoals.includes(goal.title) && styles.goalButtonActive
+                ]}
+                onPress={() => toggleGoal(goal.title)}
+              >
+                <MaterialCommunityIcons 
+                  name={goal.icon} 
+                  size={24} 
+                  color={selectedGoals.includes(goal.title) ? '#fff' : '#92A3FD'} 
+                />
+                <Text style={[
+                  styles.goalButtonText,
+                  selectedGoals.includes(goal.title) && styles.goalButtonTextActive
+                ]}>
+                  {goal.title}
+                </Text>
+                {selectedGoals.includes(goal.title) && (
+                  <MaterialIcons name="check-circle" size={20} color="#fff" style={styles.checkIcon} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       </View>
 
       {/* Buttons */}
@@ -236,37 +294,31 @@ export default function EditProfileScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
     paddingTop: 50,
-    paddingBottom: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F7F8F8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingBottom: 30,
+    backgroundColor: '#FFFFFF',
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1D1617',
+    letterSpacing: 0.5,
   },
   emptySpace: {
     width: 40,
   },
   form: {
     paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 40,
+    marginTop: 10,
+    marginBottom: 20,
   },
+  // Input Styles - Đồng bộ
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -276,24 +328,33 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: '#E1E5E9',
+  },
+  genderInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F8F8',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E1E5E9',
+    position: 'relative',
+    zIndex: 1000,
   },
   inputIcon: {
-    fontSize: 24,
     marginRight: 12,
-    color: '#666',
+    color: '#ADA4A5',
   },
   input: {
     flex: 1,
     fontSize: 16,
     paddingVertical: 0,
-    color: '#333',
+    color: '#1D1617',
+    fontWeight: '500',
   },
-  dropdownIcon: {
-    fontSize: 16,
-    color: '#666',
-    marginLeft: 8,
-  },
+  // Gender Dropdown Styles
   genderSelector: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -302,80 +363,154 @@ const styles = StyleSheet.create({
   },
   genderText: {
     fontSize: 16,
-    color: '#333',
-    fontWeight: 'bold',
+    color: '#1D1617',
+    fontWeight: '500',
   },
   placeholderText: {
-    color: '#999',
+    color: '#ADA4A5',
+    fontWeight: '400',
+  },
+  dropdownIcon: {
+    fontSize: 12,
+    color: '#ADA4A5',
+    marginLeft: 8,
   },
   dropdownContainer: {
     position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingVertical: 10,
-    marginTop: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 8,
+    marginTop: 8,
     zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 5,
     borderWidth: 1,
     borderColor: '#E1E5E9',
   },
   dropdownItem: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
   dropdownItemText: {
     fontSize: 16,
-    color: '#333',
+    color: '#1D1617',
     textAlign: 'center',
+    fontWeight: '500',
   },
+  // Unit Button Styles - Thống nhất màu
   unitButton: {
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    backgroundColor: '#E1E5E9',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
     marginLeft: 12,
+    minWidth: 50,
+    alignItems: 'center',
   },
   unitButtonActive: {
-    backgroundColor: '#E68FBB',
+    backgroundColor: '#92A3FD',
+    shadowColor: '#92A3FD',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   unitButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#666',
+    color: '#7B6F72',
   },
   unitButtonTextActive: {
-    color: '#fff',
+    color: '#FFFFFF',
   },
+  // Goals Section - Đồng bộ với input
+  goalsSection: {
+    marginTop: 24,
+    marginBottom: 10,
+  },
+  goalsSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1D1617',
+    marginBottom: 6,
+    letterSpacing: 0.3,
+  },
+  goalsSectionSubtitle: {
+    fontSize: 14,
+    color: '#7B6F72',
+    marginBottom: 16,
+  },
+  goalsContainer: {
+    marginTop: 8,
+  },
+  goalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F8F8',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E1E5E9',
+  },
+  goalButtonActive: {
+    backgroundColor: '#92A3FD',
+    borderColor: '#92A3FD',
+    shadowColor: '#92A3FD',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  goalButtonText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#7B6F72',
+    marginLeft: 12,
+  },
+  goalButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  checkIcon: {
+    marginLeft: 8,
+  },
+  // Action Buttons
   buttonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginBottom: 30,
+    marginTop: 20,
+    marginBottom: 40,
+    gap: 16,
   },
   cancelButton: {
     flex: 1,
     backgroundColor: '#F7F8F8',
     paddingVertical: 18,
     borderRadius: 30,
-    marginRight: 10,
     borderWidth: 1,
     borderColor: '#E1E5E9',
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#666',
+    color: '#7B6F72',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -384,7 +519,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#92A3FD',
     paddingVertical: 18,
     borderRadius: 30,
-    marginLeft: 10,
     alignItems: 'center',
     shadowColor: '#92A3FD',
     shadowOffset: {
@@ -396,21 +530,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   saveButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  genderInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F7F8F8',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    position: 'relative',
-    zIndex: 1000,
-  }
 });

@@ -17,30 +17,23 @@ const { width, height } = Dimensions.get('window');
 const goals = [
   {
     id: 1,
-    title: 'Tăng cơ',
+    title: 'Nâng cao kỹ năng cầu lông',
     description:
       'Muốn tăng khối lượng cơ, nâng cao sức mạnh và vóc dáng săn chắc.',
     image: require('../assets/images/Vector.png'),
   },
   {
     id: 2,
-    title: 'Giảm mỡ',
+    title: 'Cải thiện thể chất',
     description:
       'Muốn giảm mỡ thừa, cải thiện độ săn chắc và sức bền.',
     image: require('../assets/images/Vector(1).png'),
   },
   {
     id: 3,
-    title: 'Duy trì thể trạng',
+    title: 'Quản lí hình thể và sức khỏe',
     description:
       'Giữ cân nặng và sức khỏe ổn định, duy trì phong độ luyện tập.',
-    image: require('../assets/images/Vector(2).png'),
-  },
-  {
-    id: 4,
-    title: 'Nâng cao kỹ thuật cầu lông',
-    description:
-      'Tập trung nâng cao kỹ thuật đánh cầu, di chuyển, phản xạ và chiến thuật.',
     image: require('../assets/images/Vector(2).png'),
   }
 ];

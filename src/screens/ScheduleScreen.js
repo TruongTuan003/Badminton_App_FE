@@ -12,21 +12,32 @@ import {
   View,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
-import api from "../services/api"; // dùng instance axios bạn có sẵn
+import api, { scheduleAPI } from "../services/api"; // dùng instance axios bạn có sẵn
 
-export default function ScheduleScreen({ navigation }) {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+export default function ScheduleScreen({ navigation, route }) {
+  // Nhận params từ navigation (nếu có)
+  const initialDate = route?.params?.selectedDate 
+    ? new Date(route.params.selectedDate) 
+    : new Date();
+  
+  const [selectedDate, setSelectedDate] = useState(initialDate);
   const [schedule, setSchedule] = useState(null);
   const [loading, setLoading] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
 
-  const formatDateOnly = (date) => date.toISOString().split("T")[0];
+  const formatDateOnly = (date) => {
+    // Format date thành YYYY-MM-DD (local time, không UTC)
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   // 📍 Gọi API lấy lịch theo ngày
   const fetchSchedules = async () => {
     try {
       const formattedDate = formatDateOnly(selectedDate);
-      console.log("📅 Fetch schedule for:", formattedDate);
+      console.log("📅 Fetch schedule for:", formattedDate, "Selected date:", selectedDate.toLocaleDateString());
 
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
@@ -54,6 +65,18 @@ export default function ScheduleScreen({ navigation }) {
     fetchSchedules();
   }, [selectedDate]);
 
+  // Refresh khi nhận params từ navigation
+  useEffect(() => {
+    if (route?.params?.refresh) {
+      console.log("🔄 Refreshing schedule from navigation params");
+      if (route.params.selectedDate) {
+        setSelectedDate(new Date(route.params.selectedDate));
+      } else {
+        fetchSchedules();
+      }
+    }
+  }, [route?.params?.refresh]);
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -79,20 +102,81 @@ export default function ScheduleScreen({ navigation }) {
         <ScrollView style={styles.scheduleList}>
           <Text style={styles.scheduleTitle}>Ghi chú: {schedule.note || "Không có"}</Text>
           {schedule.details?.length > 0 ? (
-            schedule.details.map((item, index) => (
-              <View key={index} style={styles.card}>
-                <Text style={styles.cardTitle}>{item.workoutId.title}</Text>
-                <Text style={styles.cardTime}>🕒 {item.time}</Text>
-                <Text style={styles.cardGoal}>🎯 {item.workoutId.goal}</Text>
-                <Text style={styles.cardLevel}>🏋️ {item.workoutId.level}</Text>
-              </View>
-            ))
+            schedule.details.map((item, index) => {
+              const getStatusColor = (status) => {
+                switch (status) {
+                  case "done":
+                    return "#4CAF50"; // Green
+                  case "skipped":
+                    return "#FF9800"; // Orange
+                  default:
+                    return "#92A3FD"; // Blue (pending)
+                }
+              };
+
+              const getStatusText = (status) => {
+                switch (status) {
+                  case "done":
+                    return "✅ Hoàn thành";
+                  case "skipped":
+                    return "⏭️ Đã bỏ qua";
+                  default:
+                    return "⏳ Đang chờ";
+                }
+              };
+
+              return (
+                <View 
+                  key={index} 
+                  style={[
+                    styles.card,
+                    item.status === "done" && styles.cardDone,
+                    item.status === "skipped" && styles.cardSkipped
+                  ]}
+                >
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>{item.workoutId.title}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+                      <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.cardTime}>🕒 {item.time || "--:--"}</Text>
+                  {item.note && (
+                    <Text style={styles.cardNote}>📝 {item.note}</Text>
+                  )}
+                  <Text style={styles.cardGoal}>🎯 {item.workoutId.goal}</Text>
+                  <Text style={styles.cardLevel}>🏋️ {item.workoutId.level}</Text>
+                  
+                  {item.status === "pending" && (
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.actionButtonStart]}
+                      onPress={() => {
+                        navigation.navigate("TrainingDetail", {
+                          id: item.workoutId._id,
+                        });
+                      }}
+                    >
+                      <Text style={styles.actionButtonText}>▶️ Bắt đầu</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            })
           ) : (
             <Text style={styles.noData}>Không có bài tập trong ngày này.</Text>
           )}
         </ScrollView>
       ) : (
-        <Text style={styles.noData}>Không có lịch tập cho ngày này.</Text>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.noData}>Không có lịch tập cho ngày này.</Text>
+          <TouchableOpacity
+            style={styles.planButton}
+            onPress={() => navigation.navigate("TrainingPlanList")}
+          >
+            <Feather name="calendar" size={20} color="#fff" />
+            <Text style={styles.planButtonText}>Chọn kế hoạch tập luyện</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* 📅 Modal hiển thị Calendar */}
@@ -154,12 +238,81 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 14,
     marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: "#92A3FD",
   },
-  cardTitle: { fontSize: 16, fontWeight: "600", color: "#1D1617" },
-  cardTime: { fontSize: 14, color: "#7B6F72" },
-  cardGoal: { fontSize: 14, color: "#7B6F72" },
-  cardLevel: { fontSize: 14, color: "#7B6F72" },
-  noData: { textAlign: "center", color: "#7B6F72", marginTop: 30 },
+  cardDone: {
+    backgroundColor: "#E8F5E9",
+    borderLeftColor: "#4CAF50",
+    opacity: 0.8,
+  },
+  cardSkipped: {
+    backgroundColor: "#FFF3E0",
+    borderLeftColor: "#FF9800",
+    opacity: 0.8,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  cardTitle: { fontSize: 16, fontWeight: "600", color: "#1D1617", flex: 1 },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  cardTime: { fontSize: 14, color: "#7B6F72", marginTop: 4 },
+  cardNote: { fontSize: 14, color: "#7B6F72", marginTop: 4, fontStyle: "italic" },
+  cardGoal: { fontSize: 14, color: "#7B6F72", marginTop: 4 },
+  cardLevel: { fontSize: 14, color: "#7B6F72", marginTop: 4 },
+  actionButton: {
+    width: "100%",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  actionButtonStart: {
+    backgroundColor: "#92A3FD",
+  },
+  actionButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    marginTop: 30,
+  },
+  noData: { textAlign: "center", color: "#7B6F72", marginBottom: 20 },
+  planButton: {
+    flexDirection: "row",
+    backgroundColor: "#92A3FD",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 25,
+    alignItems: "center",
+    gap: 8,
+    shadowColor: "#92A3FD",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  planButtonText: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#fff",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.3)",

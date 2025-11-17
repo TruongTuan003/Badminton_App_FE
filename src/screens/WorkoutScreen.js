@@ -29,10 +29,17 @@ export default function WorkoutScreen({ navigation }) {
         const res = await scheduleAPI.getByDate(dateStr);
         console.log("[WorkoutScreen] API response:", res.data);
 
-        if (res.data && Array.isArray(res.data.details) && res.data.details.length > 0) {
-          setTodaySchedule(res.data.details[0]);
-        } else if (res.data?.details) {
-          setTodaySchedule(res.data.details);
+        if (res.data && Array.isArray(res.data.details)) {
+          // Lọc các bài tập chưa hoàn thành (status = "pending" hoặc "skipped")
+          const pendingDetails = res.data.details.filter(
+            detail => detail.status === "pending" || detail.status === "skipped"
+          );
+          
+          // Lấy bài tập đầu tiên chưa hoàn thành
+          const firstPendingDetail = pendingDetails.length > 0 ? pendingDetails[0] : null;
+          
+          console.log("[WorkoutScreen] Pending workouts:", pendingDetails.length, "Selected:", firstPendingDetail?.workoutId?.title);
+          setTodaySchedule(firstPendingDetail);
         } else {
           setTodaySchedule(null);
         }
@@ -89,6 +96,23 @@ export default function WorkoutScreen({ navigation }) {
             <Text style={styles.checkButtonText}>Xem lịch</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Training Plan Card */}
+        <TouchableOpacity
+          style={styles.planCard}
+          onPress={() => navigation.navigate("TrainingPlanList")}
+        >
+          <View style={styles.planCardIcon}>
+            <Feather name="calendar" size={28} color="#fff" />
+          </View>
+          <View style={styles.planCardContent}>
+            <Text style={styles.planCardTitle}>Kế hoạch tập luyện</Text>
+            <Text style={styles.planCardDescription}>
+              Chọn kế hoạch tập theo ngày, tuần hoặc tháng
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={24} color="#C58BF2" />
+        </TouchableOpacity>
 
         {/* Categories */}
         <View style={styles.section}>
@@ -184,6 +208,46 @@ const styles = StyleSheet.create({
   checkButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
   loadingContainer: { flexDirection: "row", alignItems: "center", marginTop: 8 },
   loadingText: { marginLeft: 8, color: "#7B6F72", fontSize: 14 },
+
+  // Plan Card
+  planCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+  },
+  planCardIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#C58BF2",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  planCardContent: {
+    flex: 1,
+  },
+  planCardTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1D1617",
+    marginBottom: 4,
+  },
+  planCardDescription: {
+    fontSize: 13,
+    color: "#7B6F72",
+    lineHeight: 18,
+  },
 
   // Section
   section: { marginBottom: 30 },

@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { trainingLogAPI, workoutAPI } from "../services/api";
+import { trainingLogAPI, workoutAPI, scheduleAPI } from "../services/api";
 
 export default function TrainingDetailScreen({ route, navigation }) {
   const { id } = route.params;
@@ -63,14 +63,29 @@ export default function TrainingDetailScreen({ route, navigation }) {
     if (!selectedFeeling) return;
     try {
       setSubmitting(true);
+      
+      // Tạo training log
       await trainingLogAPI.createLog({
         workoutId: id,
         feeling: selectedFeeling,
         note,
       });
+      
+      // Cập nhật status của ScheduleDetail thành "done"
+      try {
+        const today = new Date();
+        const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        await scheduleAPI.updateDetailStatusByWorkout(id, "done", dateString);
+        console.log("✅ Updated schedule detail status to 'done'");
+      } catch (scheduleError) {
+        console.warn("⚠️ Could not update schedule detail status:", scheduleError);
+        // Không throw error, vì training log đã được tạo thành công
+      }
+      
       setFeedbackVisible(false);
       navigation.goBack();
     } catch (e) {
+      console.error("❌ Error submitting feedback:", e);
       setFeedbackVisible(false);
       navigation.goBack();
     } finally {

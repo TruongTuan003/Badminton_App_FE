@@ -63,9 +63,17 @@ export default function HomeScreen({ navigation, route }) {
 
       if (schRes.data) {
         const { schedule, details } = schRes.data;
-        const firstDetail =
-          Array.isArray(details) && details.length > 0 ? details[0] : null;
-        setTodaySchedule(firstDetail);
+        
+        // Lọc các bài tập chưa hoàn thành (status = "pending" hoặc "skipped")
+        const pendingDetails = Array.isArray(details) 
+          ? details.filter(detail => detail.status === "pending" || detail.status === "skipped")
+          : [];
+        
+        // Lấy bài tập đầu tiên chưa hoàn thành
+        const firstPendingDetail = pendingDetails.length > 0 ? pendingDetails[0] : null;
+        
+        console.log("📋 Pending workouts:", pendingDetails.length, "Selected:", firstPendingDetail?.workoutId?.title);
+        setTodaySchedule(firstPendingDetail);
       } else {
         console.log("ℹ️ Không có dữ liệu lịch hôm nay");
         setTodaySchedule(null);

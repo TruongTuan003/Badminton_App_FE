@@ -79,6 +79,7 @@ export default function HomeScreen({ navigation, route }) {
         setTodaySchedule(null);
       }
     } catch (error) {
+      console.error("❌ Error fetching schedule:", error);
       setTodaySchedule(null);
     }
   }, [todayStr]);

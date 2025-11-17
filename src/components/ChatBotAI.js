@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -25,8 +26,31 @@ export default function ChatBotAI() {
 
   const scrollViewRef = useRef(null);
   const chatAnimation = useRef(new Animated.Value(0)).current;
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const generateId = () => Math.random().toString(36).slice(2, 10);
+
+  // Lắng nghe sự kiện bàn phím
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
 
   // ✅ Toggle chat popup
   const toggleChat = () => {
@@ -57,7 +81,7 @@ export default function ChatBotAI() {
     setIsLoading(true);
 
     try {
-      const res = await axios.post("http://192.168.33.139:3000/api/chat", {
+      const res = await axios.post("http://192.168.10.57:3000/api/chat", {
         message: userMessage.content,
       });
 
@@ -179,13 +203,17 @@ export default function ChatBotAI() {
         <Animated.View
           style={[
             styles.chatModal,
-            { opacity: chatOpacity, transform: [{ scale: chatScale }] },
+            { 
+              opacity: chatOpacity, 
+              transform: [{ scale: chatScale }],
+              bottom: keyboardHeight > 0 ? keyboardHeight : 160,
+            },
           ]}
         >
           <KeyboardAvoidingView
             style={styles.chatContainer}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={0}
           >
             {/* Header */}
             <View style={styles.header}>

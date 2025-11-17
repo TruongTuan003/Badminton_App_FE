@@ -1,7 +1,7 @@
-import axios from "axios";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bot, MessageCircleX, Trash, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
+import api from "../services/api";
 import {
   ActivityIndicator,
   Alert,
@@ -81,7 +81,7 @@ export default function ChatBotAI() {
     setIsLoading(true);
 
     try {
-      const res = await axios.post("http://192.168.10.57:3000/api/chat", {
+      const res = await api.post("/chat", {
         message: userMessage.content,
       });
 

@@ -11,7 +11,7 @@ import {
   View
 } from "react-native";
 import { Calendar } from "react-native-calendars";
-import { trainingPlanAPI } from "../services/api";
+import { trainingPlanAPI, scheduleAPI } from "../services/api";
 
 export default function TrainingPlanDetailScreen({ route, navigation }) {
   const { plan } = route.params;
@@ -53,29 +53,85 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
     return plan.planDays.reduce((total, day) => total + (day.workouts?.length || 0), 0);
   };
 
-  const confirmApplyPlan = () => {
-    Alert.alert(
-      "Xác nhận",
-      "Nếu đã có lịch tập trong các ngày này, bạn muốn:\n\n" +
-      "• Thêm vào lịch cũ (giữ bài tập cũ)\n" +
-      "• Ghi đè lịch cũ (xóa bài tập cũ)",
-      [
-        {
-          text: "Hủy",
-          style: "cancel",
-          onPress: () => setShowCalendar(false)
-        },
-        {
-          text: "Thêm vào",
-          onPress: () => handleApplyPlan(false)
-        },
-        {
-          text: "Ghi đè",
-          onPress: () => handleApplyPlan(true),
-          style: "destructive"
+  const checkExistingSchedules = async () => {
+    try {
+      // Tính toán các ngày sẽ được tạo dựa trên plan type và start date
+      const startDate = new Date(selectedDate);
+      const datesToCheck = [];
+      
+      if (plan.type === "daily") {
+        datesToCheck.push(selectedDate);
+      } else if (plan.type === "weekly") {
+        // 7 ngày
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(startDate);
+          date.setDate(date.getDate() + i);
+          datesToCheck.push(date.toISOString().split("T")[0]);
         }
-      ]
-    );
+      } else if (plan.type === "monthly") {
+        // 30 ngày
+        for (let i = 0; i < 30; i++) {
+          const date = new Date(startDate);
+          date.setDate(date.getDate() + i);
+          datesToCheck.push(date.toISOString().split("T")[0]);
+        }
+      }
+
+      // Kiểm tra từng ngày xem có schedule chưa
+      let hasExistingSchedule = false;
+      for (const dateStr of datesToCheck) {
+        try {
+          const response = await scheduleAPI.getByDate(dateStr);
+          if (response.data && response.data.schedule) {
+            hasExistingSchedule = true;
+            break;
+          }
+        } catch (err) {
+          // Nếu lỗi hoặc không có schedule, tiếp tục kiểm tra ngày khác
+          console.log(`No schedule found for ${dateStr}`);
+        }
+      }
+
+      return hasExistingSchedule;
+    } catch (error) {
+      console.error("Error checking existing schedules:", error);
+      // Nếu có lỗi, giả định là có schedule để hiển thị Alert (an toàn hơn)
+      return true;
+    }
+  };
+
+  const confirmApplyPlan = async () => {
+    // Kiểm tra xem có schedule trong các ngày này chưa
+    const hasExisting = await checkExistingSchedules();
+    
+    if (hasExisting) {
+      // Nếu đã có schedule, hiển thị Alert để chọn "Thêm vào" hoặc "Ghi đè"
+      Alert.alert(
+        "Xác nhận",
+        "Nếu đã có lịch tập trong các ngày này, bạn muốn:\n\n" +
+        "• Thêm vào lịch cũ (giữ bài tập cũ)\n" +
+        "• Ghi đè lịch cũ (xóa bài tập cũ)",
+        [
+          {
+            text: "Hủy",
+            style: "cancel",
+            onPress: () => setShowCalendar(false)
+          },
+          {
+            text: "Thêm vào",
+            onPress: () => handleApplyPlan(false)
+          },
+          {
+            text: "Ghi đè",
+            onPress: () => handleApplyPlan(true),
+            style: "destructive"
+          }
+        ]
+      );
+    } else {
+      // Nếu chưa có schedule, thêm vào luôn không cần hỏi
+      handleApplyPlan(false);
+    }
   };
 
   const handleApplyPlan = async (replaceExisting = false) => {

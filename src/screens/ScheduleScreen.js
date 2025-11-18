@@ -125,11 +125,11 @@ export default function ScheduleScreen({ navigation, route }) {
               const getStatusText = (status) => {
                 switch (status) {
                   case "done":
-                    return " Hoàn thành";
+                    return "Hoàn thành";
                   case "skipped":
-                    return "⏭️ Đã bỏ qua";
+                    return "Đã bỏ qua";
                   default:
-                    return "⏳ Đang chờ";
+                    return "Đang chờ";
                 }
               };
 
@@ -164,7 +164,7 @@ export default function ScheduleScreen({ navigation, route }) {
                         });
                       }}
                     >
-                      <Text style={styles.actionButtonText}>▶️ Bắt đầu</Text>
+                      <Text style={styles.actionButtonText}>Bắt đầu</Text>
                     </TouchableOpacity>
                   )}
                 </View>

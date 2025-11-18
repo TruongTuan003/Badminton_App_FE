@@ -329,7 +329,7 @@ export default function HomeScreen({ navigation, route }) {
                       todaySchedule.status === "done" ? styles.statusDone : styles.statusPending
                     ]}>
                       <Text style={styles.statusText}>
-                        {todaySchedule.status === "done" ? "✅ Hoàn thành" : "⏳ Đang chờ"}
+                        {todaySchedule.status === "done" ? "Hoàn thành" : "Đang chờ"}
                       </Text>
                     </View>
                   </View>

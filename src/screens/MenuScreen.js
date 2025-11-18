@@ -18,7 +18,7 @@ import { COLORS, FONTS, SHADOWS } from '../styles/commonStyles';
 const { width } = Dimensions.get('window');
 
 export default function MenuScreen({ navigation }) {
-  const [selectedPeriod, setSelectedPeriod] = useState('Weekly');
+  const [selectedPeriod, setSelectedPeriod] = useState('Daily');
   const [selectedMeal, setSelectedMeal] = useState('');
   const [periodModalVisible, setPeriodModalVisible] = useState(false);
   const [mealModalVisible, setMealModalVisible] = useState(false);
@@ -119,7 +119,7 @@ export default function MenuScreen({ navigation }) {
     setTotalCalories(sumCalories);
   }, [todayMeals]);
 
-  const periodOptions = ['Daily', 'Weekly', 'Monthly'];
+  const periodOptions = ['daily'];
   const mealOptions = ['Bữa sáng', 'Bữa trưa', 'Bữa tối', 'Bữa phụ'];
   const renderNutritionChart = () => (
     <View style={styles.chartContainer}>
@@ -130,7 +130,6 @@ export default function MenuScreen({ navigation }) {
           onPress={() => setPeriodModalVisible(true)}
         >
           <Text style={styles.dropdownText}>{selectedPeriod}</Text>
-          <Feather name="chevron-down" size={16} color={COLORS.gray} />
         </TouchableOpacity>
       </View>
 
@@ -344,7 +343,6 @@ export default function MenuScreen({ navigation }) {
        >
         <Feather name="plus" size={26} color="#FFFFFF" />
       </TouchableOpacity>
-      {renderPeriodModal()}
       {renderMealModal()}
     </View>
   );

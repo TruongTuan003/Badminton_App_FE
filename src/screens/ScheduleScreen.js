@@ -125,7 +125,7 @@ export default function ScheduleScreen({ navigation, route }) {
               const getStatusText = (status) => {
                 switch (status) {
                   case "done":
-                    return "✅ Hoàn thành";
+                    return " Hoàn thành";
                   case "skipped":
                     return "⏭️ Đã bỏ qua";
                   default:

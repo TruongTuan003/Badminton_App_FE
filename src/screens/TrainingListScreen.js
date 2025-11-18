@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   Image,
   Modal,
@@ -12,13 +14,36 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { TabBar, TabView } from "react-native-tab-view";
 import { Calendar } from "react-native-calendars";
+import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
 import { scheduleAPI, workoutAPI } from "../services/api";
+
+const { width } = Dimensions.get("window");
+
+const LEVEL_ROUTES = [
+  { key: "basic", title: "Cơ bản" },
+  { key: "intermediate", title: "Trung bình" },
+  { key: "advanced", title: "Nâng cao" },
+];
+
+const LEVEL_MATCHERS = {
+  basic: ["cơ bản", "basic"],
+  intermediate: ["trung bình", "intermediate", "medium"],
+  advanced: ["nâng cao", "advanced"],
+};
+
+const matchesLevel = (value = "", levelKey) => {
+  const normalizedValue = value.trim().toLowerCase();
+  return LEVEL_MATCHERS[levelKey]?.some((matcher) => normalizedValue === matcher) || false;
+};
 
 export default function TrainingListScreen({ route, navigation }) {
   const { goal } = route.params;
   const [trainings, setTrainings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tabIndex, setTabIndex] = useState(0);
+  const [routes] = useState(LEVEL_ROUTES);
 
   // Modal state
   const [isModalVisible, setModalVisible] = useState(false);
@@ -119,52 +144,162 @@ export default function TrainingListScreen({ route, navigation }) {
     }
   };
 
+  const getTrainingsByLevel = (levelKey) =>
+    trainings.filter((training) => matchesLevel(training.level || "", levelKey));
+
+  const renderTrainingCard = ({ item }) => (
+    <LinearGradient
+      colors={["#FFFFFF", "#F8F9FF"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.item}
+    >
+      <View style={styles.imageContainer}>
+        {item.image_url ? (
+          <Image source={{ uri: item.image_url }} style={styles.thumbnail} />
+        ) : (
+          <View style={styles.thumbnailPlaceholder}>
+            <Feather name="activity" size={32} color="#92A3FD" />
+          </View>
+        )}
+      </View>
+      <View style={styles.infoContainer}>
+        <Text style={styles.exerciseName}>{item.title}</Text>
+        <View style={styles.exerciseMeta}>
+          <View style={styles.metaItem}>
+            <Feather name="clock" size={14} color="#7B6F72" />
+            <Text style={styles.exerciseDesc}>{item.duration_minutes} phút</Text>
+          </View>
+          {item.level && (
+            <View style={styles.metaItem}>
+              <Feather name="trending-up" size={14} color="#7B6F72" />
+              <Text style={styles.exerciseDesc}>{item.level}</Text>
+            </View>
+          )}
+        </View>
+        {item.description && (
+          <Text style={styles.exerciseDesc} numberOfLines={2}>
+            {item.description}
+          </Text>
+        )}
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={styles.scheduleButton} onPress={() => openModal(item)}>
+            <LinearGradient
+              colors={["#EEF6FF", "#F3F5FF"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.scheduleButtonGradient}
+            >
+              <Feather name="calendar" size={16} color="#92A3FD" />
+              <Text style={styles.scheduleButtonText}>Thêm lịch</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={() => navigation.navigate("TrainingDetail", { id: item._id })}
+          >
+            <LinearGradient
+              colors={["#7ED7B5", "#4ECDC4"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.startButtonGradient}
+            >
+              <Feather name="play" size={16} color="#FFFFFF" />
+              <Text style={styles.startButtonText}>Bắt đầu</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </LinearGradient>
+  );
+
+  const renderTrainingList = (levelKey) => {
+    const data = getTrainingsByLevel(levelKey);
+
+    return (
+      <View style={styles.tabScene}>
+        {data.length ? (
+          <FlatList
+            data={data}
+            keyExtractor={(item) => item._id}
+            renderItem={renderTrainingCard}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Feather name="inbox" size={48} color="#ADA4A5" />
+            <Text style={styles.emptyText}>Không có bài tập nào</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderScene = ({ route }) => {
+    switch (route.key) {
+      case "basic":
+        return renderTrainingList("basic");
+      case "intermediate":
+        return renderTrainingList("intermediate");
+      case "advanced":
+        return renderTrainingList("advanced");
+      default:
+        return null;
+    }
+  };
+
+  const renderTabBar = (props) => (
+    <TabBar
+      {...props}
+      indicatorStyle={styles.tabIndicator}
+      style={styles.tabBar}
+      labelStyle={styles.tabLabel}
+      activeColor={COLORS.primary}
+      inactiveColor="#ADA4A5"
+      pressColor="transparent"
+    />
+  );
+
   if (loading)
-    return <ActivityIndicator style={{ marginTop: 50 }} size="large" />;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color="#1D1617" />
-        </TouchableOpacity>
-        <Text style={styles.title}>{goal}</Text>
-      </View>
-
-      {/* Danh sách bài tập */}
-      <FlatList
-        data={trainings}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <View style={styles.imageContainer}>
-              <Image source={{ uri: item.image_url }} style={styles.thumbnail} />
-            </View>
-            <View style={styles.infoContainer}>
-              <Text style={styles.exerciseName}>{item.title}</Text>
-              <Text style={styles.exerciseDesc}>
-                Thời lượng: {item.duration_minutes} phút
-              </Text>
-              <Text style={styles.exerciseDesc}>{item.description}</Text>
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={styles.scheduleButton}
-                  onPress={() => openModal(item)}
-                >
-                  <Text style={styles.scheduleButtonText}>Thêm lịch</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.startButton}
-                  onPress={() => navigation.navigate("TrainingDetail", { id: item._id })}
-                >
-                  <Text style={styles.startButtonText}>Bắt đầu</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={["#9DCEFF", "#92A3FD"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroWrapper}
+      >
+        <View style={styles.heroHeader}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Feather name="arrow-left" size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroTitle}>{goal}</Text>
+            <Text style={styles.heroSubtitle}>
+              Chọn bài tập phù hợp với mục tiêu của bạn
+            </Text>
           </View>
-        )}
-      />
+        </View>
+      </LinearGradient>
+
+      <View style={styles.contentWrapper}>
+        <TabView
+          navigationState={{ index: tabIndex, routes }}
+          renderScene={renderScene}
+          onIndexChange={setTabIndex}
+          initialLayout={{ width }}
+          renderTabBar={renderTabBar}
+          style={styles.tabView}
+        />
+      </View>
 
       {/* Modal thêm lịch */}
       <Modal visible={isModalVisible} transparent animationType="slide">
@@ -202,7 +337,15 @@ export default function TrainingListScreen({ route, navigation }) {
 
             {/* Nút xác nhận */}
             <TouchableOpacity style={styles.confirmButton} onPress={handleAddToSchedule}>
-              <Text style={styles.confirmButtonText}>Thêm vào lịch</Text>
+              <LinearGradient
+                colors={["#92A3FD", "#9DCEFF"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.confirmButtonGradient}
+              >
+                <Feather name="calendar" size={18} color="#FFFFFF" />
+                <Text style={styles.confirmButtonText}>Thêm vào lịch</Text>
+              </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.cancelButton} onPress={closeModal}>
@@ -251,108 +394,328 @@ export default function TrainingListScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFFFF", padding: 15 },
-  header: { flexDirection: "row", alignItems: "center", marginBottom: 15, paddingTop: 50 },
-  backButton: {
-    marginRight: 10,
-    padding: 6,
-    borderRadius: 10,
-    backgroundColor: "#F4F4F4",
+  container: { 
+    flex: 1, 
+    backgroundColor: "#FFFFFF"
   },
-  title: { fontSize: 23, fontWeight: "700", color: "#1D1617" },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  heroWrapper: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  heroHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: FONTS.bold,
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.85)",
+    lineHeight: 18,
+    fontWeight: FONTS.semiBold,
+    marginBottom: 10,
+  },
+  contentWrapper: {
+    flex: 1,
+    backgroundColor: "#F6F8FB",
+    marginTop: -20,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 20,
+  },
+  tabView: {
+    flex: 1,
+  },
+  tabScene: {
+    flex: 1,
+  },
+  tabBar: {
+    backgroundColor: "transparent",
+    elevation: 0,
+    shadowOpacity: 0,
+    marginHorizontal: 20,
+    borderRadius: 30,
+    marginBottom: 12,
+  },
+  tabIndicator: {
+    backgroundColor: "#FFFFFF",
+    height: "90%",
+    marginVertical: 4,
+    borderRadius: 24,
+    ...SHADOWS.small,
+  },
+  tabLabel: {
+    fontSize: 13,
+    fontWeight: FONTS.semiBold,
+    textTransform: "none",
+  },
+  listContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
   item: {
     flexDirection: "row",
-    backgroundColor: "#EEF2FF",
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 16,
+    shadowColor: "#92A3FD",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "rgba(146, 163, 253, 0.1)",
   },
   imageContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
+    width: 110,
+    height: 110,
+    borderRadius: 16,
     overflow: "hidden",
     marginRight: 16,
+    backgroundColor: COLORS.inputBackground,
   },
-  thumbnail: { width: "100%", height: "100%" },
-  infoContainer: { flex: 1 },
-  exerciseName: { fontSize: 16, fontWeight: "600", color: "#1D2A64" },
-  exerciseDesc: { fontSize: 13, color: "#777", marginVertical: 2 },
-  buttonRow: { flexDirection: "row", marginTop: 8 },
+  thumbnail: { 
+    width: "100%", 
+    height: "100%",
+    resizeMode: "cover",
+  },
+  thumbnailPlaceholder: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#EEF6FF",
+  },
+  infoContainer: { 
+    flex: 1,
+    justifyContent: "space-between",
+  },
+  exerciseName: { 
+    fontSize: 17, 
+    fontWeight: "700", 
+    color: "#1D1617",
+    marginBottom: 8,
+    lineHeight: 24,
+  },
+  exerciseMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginBottom: 8,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  exerciseDesc: { 
+    fontSize: 13, 
+    color: "#7B6F72",
+    fontWeight: "500",
+  },
+  buttonRow: { 
+    flexDirection: "row", 
+    marginTop: 12,
+    gap: 10,
+  },
   scheduleButton: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#92A3FD",
-    backgroundColor: "#F5F7FF",
-    paddingVertical: 8,
-    borderRadius: 25,
-    alignItems: "center",
-    marginRight: 8,
+    borderRadius: 14,
+    overflow: "hidden",
+    shadowColor: "#92A3FD",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  scheduleButtonText: { color: "#92A3FD", fontWeight: "600" },
+  scheduleButtonGradient: {
+    paddingVertical: 10,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "rgba(146, 163, 253, 0.2)",
+  },
+  scheduleButtonText: { 
+    color: "#92A3FD", 
+    fontWeight: "600",
+    fontSize: 14,
+  },
   startButton: {
     flex: 1,
-    backgroundColor: "#9df8c8",
-    paddingVertical: 8,
-    borderRadius: 25,
-    alignItems: "center",
+    borderRadius: 14,
+    overflow: "hidden",
+    shadowColor: "#7ED7B5",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  startButtonText: { fontWeight: "600" },
+  startButtonGradient: {
+    paddingVertical: 10,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  startButtonText: { 
+    fontWeight: "700",
+    fontSize: 14,
+    color: "#FFFFFF",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#7B6F72",
+    fontWeight: "500",
+  },
 
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalContainer: {
     backgroundColor: "#fff",
-    width: "85%",
-    borderRadius: 20,
-    padding: 20,
+    width: "90%",
+    maxWidth: 400,
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
   },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: "#1D1617", marginBottom: 15, textAlign: "center" },
-  modalLabel: { color: "#555", marginBottom: 6, fontWeight: "600" },
+  modalTitle: { 
+    fontSize: 20, 
+    fontWeight: FONTS.bold, 
+    color: "#1D1617", 
+    marginBottom: 20, 
+    textAlign: "center" 
+  },
+  modalLabel: { 
+    color: "#1D1617", 
+    marginBottom: 8, 
+    fontWeight: FONTS.semiBold,
+    fontSize: 14,
+  },
   modalInput: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 15,
+    borderColor: COLORS.inputBackground,
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
     color: "#000",
+    fontSize: 15,
   },
   modalDateButton: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 15,
+    borderColor: COLORS.inputBackground,
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
   },
-  modalDateText: { color: "#000" },
-  modalValue: { fontWeight: "600", marginBottom: 20 },
+  modalDateText: { 
+    color: "#000",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  modalValue: { 
+    fontWeight: FONTS.semiBold, 
+    marginBottom: 20,
+    fontSize: 15,
+    color: "#1D1617",
+    padding: 12,
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: 12,
+  },
   confirmButton: {
-    backgroundColor: "#92A3FD",
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: "center",
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#92A3FD",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  confirmButtonText: { color: "#fff", fontWeight: "600" },
-  cancelButton: { alignItems: "center", marginTop: 10 },
-  cancelText: { color: "#7B6F72" },
+  confirmButtonGradient: {
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  confirmButtonText: { 
+    color: "#fff", 
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  cancelButton: { 
+    alignItems: "center", 
+    marginTop: 12,
+    paddingVertical: 8,
+  },
+  cancelText: { 
+    color: "#7B6F72",
+    fontSize: 14,
+    fontWeight: "500",
+  },
   calendarContainer: {
     backgroundColor: "#fff",
-    borderRadius: 20,
+    borderRadius: 24,
     width: "90%",
+    maxWidth: 400,
     padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
   },
   calendarHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 16,
   },
 });

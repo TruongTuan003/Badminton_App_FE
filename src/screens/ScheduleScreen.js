@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   ActivityIndicator,
   Alert,
@@ -34,7 +35,7 @@ export default function ScheduleScreen({ navigation, route }) {
   };
 
   // 📍 Gọi API lấy lịch theo ngày
-  const fetchSchedules = async () => {
+  const fetchSchedules = useCallback(async () => {
     try {
       const formattedDate = formatDateOnly(selectedDate);
       console.log("📅 Fetch schedule for:", formattedDate, "Selected date:", selectedDate.toLocaleDateString());
@@ -59,11 +60,11 @@ export default function ScheduleScreen({ navigation, route }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDate]);
 
   useEffect(() => {
     fetchSchedules();
-  }, [selectedDate]);
+  }, [fetchSchedules]);
 
   // Refresh khi nhận params từ navigation
   useEffect(() => {
@@ -75,7 +76,14 @@ export default function ScheduleScreen({ navigation, route }) {
         fetchSchedules();
       }
     }
-  }, [route?.params?.refresh]);
+  }, [route?.params?.refresh, fetchSchedules]);
+
+  // Load lại dữ liệu khi quay lại màn hình
+  useFocusEffect(
+    useCallback(() => {
+      fetchSchedules();
+    }, [fetchSchedules])
+  );
 
   return (
     <View style={styles.container}>

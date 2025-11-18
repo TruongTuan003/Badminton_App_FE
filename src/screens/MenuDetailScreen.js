@@ -235,7 +235,7 @@ export default function MenuDetailScreen({ navigation }) {
             </Text>
           </View>
           <TouchableOpacity onPress={() => setCalendarVisible(true)}>
-            <Feather name="calendar" size={28} color="#FFF" />
+            <Feather name="calendar" size={24} color="#FFF" />
           </TouchableOpacity>
         </View>
         {/* Ngày đang chọn với nút chuyển ngày */}
@@ -265,9 +265,6 @@ export default function MenuDetailScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </LinearGradient>
-
-
-
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -327,42 +324,43 @@ const styles = StyleSheet.create({
   },
   heroWrapper: {
     paddingHorizontal: 20,
-    paddingTop: 15,
-    paddingBottom: 26,
-    borderRadius: 28,
+    paddingTop: 10,
+    paddingBottom: 16,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
   heroHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 18,
+    gap: 12,
+    marginBottom: 8,
   },
   backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 10,
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: 25,
     fontWeight: FONTS.bold,
     color: "#FFFFFF",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   heroSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: "rgba(255,255,255,0.85)",
-    marginTop: 4,
-    marginBottom: 10,
+    lineHeight: 18,
   },
   dateContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 10,
-    paddingHorizontal: 20,
+    marginTop: 4,
+    marginBottom: 15,
   },
   dateNavButton: {
     width: 32,
@@ -374,7 +372,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     textAlign: "center",
-    fontSize: 16,
+    fontSize: 15,
     color: "#FFFFFF",
     marginHorizontal: 8,
     fontWeight: FONTS.semiBold,
@@ -382,7 +380,11 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 0, // Để meal dính sát body dưới chọn ngày
+    paddingTop: 20,
+    marginTop: -20,
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
   },
 
   // Meal sections

@@ -1,5 +1,6 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import React from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   Alert,
   Image,
@@ -42,8 +43,8 @@ export default function MenuDetailScreen({ navigation }) {
       } catch (err) {
         setError(
           err?.response?.data?.message ||
-            err.message ||
-            "Không thể tải thực đơn!"
+          err.message ||
+          "Không thể tải thực đơn!"
         );
         setMeals([]);
       } finally {
@@ -212,50 +213,61 @@ export default function MenuDetailScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="chevron-back" size={22} color={COLORS.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Thực đơn</Text>
-        <TouchableOpacity 
-          style={styles.iconButton}
-          onPress={() => setCalendarVisible(true)}
-        >
-          <Feather name="calendar" size={22} color={COLORS.black} />
-        </TouchableOpacity>
-      </View>
+      <LinearGradient
+        colors={["#9DCEFF", "#92A3FD"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroWrapper}
+      >
+        <View style={styles.heroHeader}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroTitle}>Thực đơn</Text>
+            <Text style={styles.heroSubtitle}>
+              Theo dõi dinh dưỡng và bữa ăn hàng ngày của bạn.
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => setCalendarVisible(true)}>
+            <Feather name="calendar" size={28} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+        {/* Ngày đang chọn với nút chuyển ngày */}
+        <View style={styles.dateContainer}>
+          <TouchableOpacity
+            style={styles.dateNavButton}
+            onPress={() => {
+              const prevDate = new Date(selectedDate);
+              prevDate.setDate(prevDate.getDate() - 1);
+              setSelectedDate(prevDate);
+            }}
+          >
+            <Feather name="chevron-left" size={18} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.dateText}>
+            Ngày: {formatDateOnly(selectedDate)}
+          </Text>
+          <TouchableOpacity
+            style={styles.dateNavButton}
+            onPress={() => {
+              const nextDate = new Date(selectedDate);
+              nextDate.setDate(nextDate.getDate() + 1);
+              setSelectedDate(nextDate);
+            }}
+          >
+            <Feather name="chevron-right" size={18} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
 
-      {/* Ngày đang chọn với nút chuyển ngày */}
-      <View style={styles.dateContainer}>
-        <TouchableOpacity
-          style={styles.dateNavButton}
-          onPress={() => {
-            const prevDate = new Date(selectedDate);
-            prevDate.setDate(prevDate.getDate() - 1);
-            setSelectedDate(prevDate);
-          }}
-        >
-          <Feather name="chevron-left" size={18} color={COLORS.black} />
-        </TouchableOpacity>
-        <Text style={styles.dateText}>
-          Ngày: {formatDateOnly(selectedDate)}
-        </Text>
-        <TouchableOpacity
-          style={styles.dateNavButton}
-          onPress={() => {
-            const nextDate = new Date(selectedDate);
-            nextDate.setDate(nextDate.getDate() + 1);
-            setSelectedDate(nextDate);
-          }}
-        >
-          <Feather name="chevron-right" size={18} color={COLORS.black} />
-        </TouchableOpacity>
-      </View>
+
+
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -265,9 +277,9 @@ export default function MenuDetailScreen({ navigation }) {
 
       {/* Floating Action Button */}
       <TouchableOpacity
-       style={styles.fab}
-       onPress={() => navigation.navigate("MealPlanSelect")}
-       >
+        style={styles.fab}
+        onPress={() => navigation.navigate("MealPlanSelect")}
+      >
         <Feather name="plus" size={26} color="#FFFFFF" />
       </TouchableOpacity>
 
@@ -304,7 +316,7 @@ export default function MenuDetailScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -313,47 +325,59 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.white,
   },
-  header: {
+  heroWrapper: {
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 26,
+    borderRadius: 28,
+  },
+  heroHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    gap: 18,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: FONTS.bold,
-    color: COLORS.black,
-  },
-  iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: COLORS.inputBackground,
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 12,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: FONTS.bold,
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 4,
+    marginBottom: 10,
   },
   dateContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 10,
-    marginBottom: 10,
     paddingHorizontal: 20,
   },
   dateNavButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.inputBackground,
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
   dateText: {
     textAlign: "center",
     fontSize: 16,
-    color: COLORS.gray,
+    color: "#FFFFFF",
     marginHorizontal: 8,
+    fontWeight: FONTS.semiBold,
   },
   content: {
     flex: 1,
@@ -388,6 +412,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: COLORS.white,
     padding: 16,
+    marginBottom: 5,
+    marginTop: 10,
     borderRadius: 16,
     ...SHADOWS.small,
   },

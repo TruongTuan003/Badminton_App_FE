@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import ChatBotAI from "../components/ChatBotAI";
@@ -373,7 +374,7 @@ export default function HomeScreen({ navigation, route }) {
                 disabled={loading} // ✅ chặn bấm khi đang loading
                 onPress={async () => {
                   if (loading) return;
-                  setLoading(true);
+                  setLoading(true);  
                   try {
                     // 1️⃣ Lấy mục tiêu người dùng
                     const response = await userAPI.getProfile();
@@ -436,6 +437,8 @@ export default function HomeScreen({ navigation, route }) {
                     }
                   } finally {
                     setLoading(false);
+                    Alert.alert("Thông báo", "Thực đơn đã được tạo thành công cho ngày hôm nay");
+                    fetchTodayMeals();
                   }
                 }}
               >

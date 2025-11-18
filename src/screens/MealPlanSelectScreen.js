@@ -248,6 +248,11 @@ export default function MealPlanSelectScreen({ navigation }) {
                 <Ionicons name="close" size={22} color={COLORS.gray} />
               </TouchableOpacity>
             </View>
+            {selectedPlan?.description && (
+              <View style={styles.modalDescriptionContainer}>
+                <Text style={styles.modalDescription}>{selectedPlan.description}</Text>
+              </View>
+            )}
 
             {selectedPlan?.type === "weekly" ? (
               (() => {
@@ -383,7 +388,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   heroSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: FONTS.semiBold,
     color: "rgba(255,255,255,0.85)",
     marginTop: 4,
     marginBottom: 10,
@@ -532,7 +538,7 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
   },
@@ -555,10 +561,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: FONTS.semiBold,
   },
+  modalDescriptionContainer: {
+    backgroundColor: COLORS.inputBackground,
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    marginTop: 4,
+  },
   modalDescription: {
-    fontSize: 13,
-    color: COLORS.gray,
-    marginBottom: 10,
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.black,
+    textAlign: "left",
   },
   modalSectionTitle: {
     fontSize: 15,

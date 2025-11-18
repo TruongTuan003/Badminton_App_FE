@@ -27,6 +27,7 @@ export default function ChatBotAI() {
   const scrollViewRef = useRef(null);
   const chatAnimation = useRef(new Animated.Value(0)).current;
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [hintVisible, setHintVisible] = useState(true);
 
   const generateId = () => Math.random().toString(36).slice(2, 10);
 
@@ -164,6 +165,40 @@ export default function ChatBotAI() {
     );
   };
 
+  const hintOpacity = useRef(new Animated.Value(0)).current;
+  const hintTranslate = useRef(new Animated.Value(8)).current;
+  const hintAnimationRef = useRef(null);
+
+  useEffect(() => {
+    hintOpacity.setValue(0);
+    hintTranslate.setValue(8);
+    setHintVisible(true);
+
+    hintAnimationRef.current = Animated.parallel([
+      Animated.timing(hintOpacity, {
+        toValue: 1,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+      Animated.timing(hintTranslate, {
+        toValue: 0,
+        duration: 700,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    hintAnimationRef.current.start();
+
+    return () => {
+      hintAnimationRef.current?.stop();
+    };
+  }, [hintOpacity, hintTranslate]);
+
+  const dismissHint = () => {
+    hintAnimationRef.current?.stop();
+    setHintVisible(false);
+  };
+
   const chatScale = chatAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: [0.8, 1],
@@ -185,8 +220,25 @@ export default function ChatBotAI() {
   return (
     <View>
       {/* 🔘 Floating Chat Button */}
+      {!isChatOpen && hintVisible && (
+        <Animated.View
+          style={[
+            styles.helperBubble,
+            {
+              opacity: hintOpacity,
+              transform: [{ translateY: hintTranslate }],
+            },
+          ]}
+        >
+          <Text style={styles.helperText}>Chat với Gemini AI</Text>
+          <TouchableOpacity style={styles.helperClose} onPress={dismissHint}>
+            <Text style={styles.helperCloseText}>×</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       <LinearGradient
-        colors={["#F97316", "#EC4899"]}
+        colors={["#92A3FD", "#9DCEFF"]}
         style={styles.linearChatToggle}
       >
         <TouchableOpacity style={styles.chatToggle} onPress={toggleChat}>
@@ -248,7 +300,7 @@ export default function ChatBotAI() {
 
               {isLoading && (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#007AFF" />
+                  <ActivityIndicator size="small" color="#7465FF" />
                   <Text style={styles.loadingText}>AI đang suy nghĩ...</Text>
                 </View>
               )}
@@ -299,6 +351,43 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   chatToggle: { padding: 12 },
+  helperBubble: {
+    position: "absolute",
+    bottom: 155,
+    right: 40,
+    backgroundColor: "rgba(146, 163, 253, 0.95)",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    maxWidth: 180,
+    shadowColor: "#92A3FD",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  helperText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  helperClose: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 4,
+  },
+  helperCloseText: {
+    color: "#6F7CFF",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
   chatModal: {
     position: "absolute",
     bottom: 160,
@@ -333,15 +422,15 @@ const styles = StyleSheet.create({
   userMessageContainer: { alignItems: "flex-end" },
   assistantMessageContainer: { alignItems: "flex-start" },
   messageBubble: { maxWidth: "85%", padding: 12, borderRadius: 18 },
-  userBubble: { backgroundColor: "#000", borderBottomRightRadius: 6 },
-  assistantBubble: { backgroundColor: "#f1f3f4", borderBottomLeftRadius: 6 },
+  userBubble: { backgroundColor: "#6F7CFF", borderBottomRightRadius: 6 },
+  assistantBubble: { backgroundColor: "#EEF2FF", borderBottomLeftRadius: 6 },
   messageText: { fontSize: 16, lineHeight: 22 },
   userText: { color: "#fff" },
   timestamp: { fontSize: 11, marginTop: 4 },
   userTimestamp: { color: "rgba(255,255,255,0.7)", textAlign: "right" },
   assistantTimestamp: { color: "#999" },
   loadingContainer: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
-  loadingText: { marginLeft: 8, fontSize: 14, color: "#666" },
+  loadingText: { marginLeft: 8, fontSize: 14, color: "#6F7CFF" },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -365,10 +454,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#000",
+    backgroundColor: "#7B8CFF",
     justifyContent: "center",
     alignItems: "center",
   },
-  sendButtonDisabled: { backgroundColor: "#ccc" },
+  sendButtonDisabled: { backgroundColor: "#CED6FF" },
   sendButtonText: { fontSize: 18, color: "#fff", fontWeight: "600" },
 });

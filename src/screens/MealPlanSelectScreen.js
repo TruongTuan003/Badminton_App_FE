@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -13,7 +14,6 @@ import {
   View,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { SceneMap, TabBar, TabView } from "react-native-tab-view";
 import { mealScheduleAPI } from "../services/api";
 import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
@@ -63,6 +63,27 @@ export default function MealPlanSelectScreen({ navigation }) {
     fetchMealPlans();
   }, []);
 
+  const planMeta = useMemo(
+    () => ({
+      daily: {
+        label: "Hằng ngày",
+        accent: "#FFC75F",
+        duration: "Trong ngày",
+      },
+      weekly: {
+        label: "Theo tuần",
+        accent: "#FF9671",
+        duration: "7 ngày",
+      },
+      monthly: {
+        label: "Theo tháng",
+        accent: "#A259FF",
+        duration: "30 ngày",
+      },
+    }),
+    []
+  );
+
   const handleSelectPlan = async (plan) => {
     try {
       const isoDate = selectedDate.toISOString().split("T")[0];
@@ -99,17 +120,45 @@ export default function MealPlanSelectScreen({ navigation }) {
               setShowModal(true);
             }}
           >
-            <Text style={styles.planTitle}>{item.name}</Text>
-            <Text style={styles.planDesc}>
-              {item.description || "Không có mô tả"}
-            </Text>
-            <Text style={styles.planType}>
-              {item.type === "daily"
-                ? "Hôm nay"
-                : item.type === "weekly"
-                ? "7 ngày"
-                : "30 ngày"}
-            </Text>
+            <View style={styles.planHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.planTitle}>{item.name}</Text>
+                <Text style={styles.planDesc} numberOfLines={2}>
+                  {item.description || "Bản kế hoạch cân bằng dinh dưỡng"}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.planBadge,
+                  { backgroundColor: (planMeta[item.type]?.accent) || COLORS.primary },
+                ]}
+              >
+                <Text style={styles.planBadgeText}>
+                  {planMeta[item.type]?.label || "Tùy chỉnh"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.planStatsRow}>
+              <View style={styles.planStat}>
+                <Text style={styles.planStatLabel}>Số bữa</Text>
+                <Text style={styles.planStatValue}>
+                  {item.meals?.length || 0}
+                </Text>
+              </View>
+              <View style={styles.planDivider} />
+              <View style={styles.planStat}>
+                <Text style={styles.planStatLabel}>Thời gian</Text>
+                <Text style={styles.planStatValue}>
+                  {planMeta[item.type]?.duration || "--"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.planFooter}>
+              <Text style={styles.planFooterText}>Chạm để xem chi tiết</Text>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
+            </View>
           </TouchableOpacity>
         )}
         showsVerticalScrollIndicator={false}
@@ -129,40 +178,58 @@ export default function MealPlanSelectScreen({ navigation }) {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chọn thực đơn</Text>
-      </View>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={["#9DCEFF", "#92A3FD"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroWrapper}
+      >
+        <View style={styles.heroHeader}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroTitle}>Chọn thực đơn</Text>
+            <Text style={styles.heroSubtitle}>
+              Cá nhân hóa chế độ ăn phù hợp với mục tiêu sức khỏe của bạn.
+            </Text>
+          </View>
+          <Ionicons name="restaurant" size={28} color="#FFF" />
+        </View>
+      </LinearGradient>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : (
-        <TabView
-          navigationState={{ index, routes }}
-          renderScene={renderScene}
-          onIndexChange={setIndex}
-          initialLayout={{ width }}
-          renderTabBar={(props) => (
-            <TabBar
-              {...props}
-              indicatorStyle={styles.tabIndicator}
-              style={styles.tabBar}
-              labelStyle={styles.tabLabel}
-              activeColor={COLORS.primary}
-              inactiveColor={COLORS.gray}
-            />
-          )}
-        />
-      )}
+      <View style={styles.contentCard}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : (
+          <TabView
+            navigationState={{ index, routes }}
+            renderScene={renderScene}
+            onIndexChange={setIndex}
+            initialLayout={{ width }}
+            renderTabBar={(props) => (
+              <TabBar
+                {...props}
+                indicatorStyle={styles.tabIndicator}
+                style={styles.tabBar}
+                labelStyle={styles.tabLabel}
+                activeColor={COLORS.primary}
+                inactiveColor={COLORS.gray}
+              />
+            )}
+          />
+        )}
+      </View>
       <Modal visible={!!selectedPlan} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -261,23 +328,10 @@ export default function MealPlanSelectScreen({ navigation }) {
             )}
             {/* Chọn ngày bắt đầu */}
             <TouchableOpacity
-              style={{
-                padding: 12,
-                borderWidth: 1,
-                borderColor: COLORS.primary,
-                borderRadius: 10,
-                marginTop: 10,
-                marginBottom: 10,
-              }}
+              style={styles.datePickerButton}
               onPress={() => setShowPicker(true)}
             >
-              <Text
-                style={{
-                  textAlign: "center",
-                  color: COLORS.primary,
-                  fontSize: 15,
-                }}
-              >
+              <Text style={styles.datePickerText}>
                 Ngày bắt đầu: {selectedDate.toLocaleDateString()}
               </Text>
             </TouchableOpacity>
@@ -291,29 +345,56 @@ export default function MealPlanSelectScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: "#F6F8FB",
+    paddingTop: 5,
   },
-  header: {
+  heroWrapper: {
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 26,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  heroHeader: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    gap: 18,
   },
-  headerTitle: {
-    fontSize: 18,
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  heroTitle: {
+    fontSize: 24,
     fontWeight: FONTS.bold,
-    marginLeft: 10,
-    color: COLORS.black,
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  contentCard: {
+    flex: 1,
+    marginTop: -30,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: "#F6F8FB",
+    paddingTop: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -342,43 +423,93 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   tabBar: {
-    backgroundColor: COLORS.white,
+    backgroundColor: "transparent",
     elevation: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    marginHorizontal: 20,
+    borderRadius: 30,
+    marginBottom: 10,
   },
   tabIndicator: {
-    backgroundColor: COLORS.primary,
-    height: 3,
-    borderRadius: 2,
-  },
-  tabLabel: {
-    fontSize: 14,
-    fontWeight: FONTS.semiBold,
-    textTransform: "capitalize",
-  },
-  planCard: {
-    backgroundColor: COLORS.inputBackground,
-    padding: 16,
-    borderRadius: 14,
-    marginHorizontal: 20,
-    marginVertical: 6,
+    backgroundColor: COLORS.white,
+    height: "90%",
+    marginVertical: 4,
+    borderRadius: 24,
     ...SHADOWS.small,
   },
+  tabLabel: {
+    fontSize: 13,
+    fontWeight: FONTS.semiBold,
+    textTransform: "none",
+    color: COLORS.gray,
+  },
+  planCard: {
+    backgroundColor: COLORS.white,
+    padding: 18,
+    borderRadius: 20,
+    marginHorizontal: 22,
+    marginVertical: 8,
+    ...SHADOWS.small,
+  },
+  planHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 12,
+    gap: 10,
+  },
   planTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: FONTS.bold,
     color: COLORS.black,
   },
   planDesc: {
     fontSize: 13,
     color: COLORS.gray,
-    marginTop: 4,
+    marginTop: 6,
   },
-  planType: {
+  planBadge: {
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  planBadgeText: {
+    color: COLORS.white,
+    fontWeight: FONTS.semiBold,
     fontSize: 12,
+  },
+  planStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 14,
+  },
+  planStat: {
+    flex: 1,
+    alignItems: "center",
+  },
+  planStatLabel: {
+    fontSize: 11,
+    color: COLORS.gray,
+    marginBottom: 4,
+  },
+  planStatValue: {
+    fontSize: 16,
+    fontWeight: FONTS.bold,
+    color: COLORS.black,
+  },
+  planDivider: {
+    width: 1,
+    height: 26,
+    backgroundColor: "rgba(0,0,0,0.08)",
+  },
+  planFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  planFooterText: {
     color: COLORS.primary,
-    marginTop: 8,
     fontWeight: FONTS.semiBold,
   },
   modalOverlay: {
@@ -409,6 +540,20 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: FONTS.bold,
     color: COLORS.black,
+  },
+  datePickerButton: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: 12,
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  datePickerText: {
+    textAlign: "center",
+    color: COLORS.primary,
+    fontSize: 15,
+    fontWeight: FONTS.semiBold,
   },
   modalDescription: {
     fontSize: 13,

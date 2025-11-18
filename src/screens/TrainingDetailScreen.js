@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useState } from "react";
@@ -13,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { trainingLogAPI, workoutAPI, scheduleAPI } from "../services/api";
+import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
 
 export default function TrainingDetailScreen({ route, navigation }) {
   const { id } = route.params;
@@ -92,19 +94,46 @@ export default function TrainingDetailScreen({ route, navigation }) {
       setSubmitting(false);
     }
   };
+  const infoItems = [
+    {
+      label: "Thời lượng",
+      value: training.duration_minutes
+        ? `${training.duration_minutes} phút`
+        : training.duration || "Không rõ",
+      icon: "clock",
+    },
+    {
+      label: "Cấp độ",
+      value: training.level || "Không rõ",
+      icon: "trending-up",
+    },
+  ];
+
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
-          >
-            <Feather name="arrow-left" size={22} color="#000" />
+      <LinearGradient
+        colors={["#E3F0FF", "#D4E4FF"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroWrapper}
+      >
+        <View style={styles.heroHeader}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Feather name="arrow-left" size={22} color={COLORS.primary || "#92A3FD"} />
           </TouchableOpacity>
+          <View style={styles.heroInfo}>
+            <Text style={styles.heroTitle}>{training.title}</Text>
+          </View>
         </View>
 
-        <View style={styles.videoBox}>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.videoCard}>
           {videoUri ? (
             <VideoView
               style={styles.video}
@@ -113,43 +142,56 @@ export default function TrainingDetailScreen({ route, navigation }) {
               contentFit="contain"
             />
           ) : (
-            <Text>No video available</Text>
+            <View style={styles.videoPlaceholder}>
+              <Feather name="play" size={28} color="#92A3FD" />
+              <Text style={styles.videoPlaceholderText}>Video đang cập nhật</Text>
+            </View>
           )}
         </View>
 
-        <Text style={styles.subtitle}>{training.title}</Text>
-        <Text style={styles.title}>{training.name}</Text>
-        <Text style={styles.sectionTitle}>Mô tả</Text>
-        <Text style={styles.text}>{training.description}</Text>
-
-        <View style={styles.stepsHeader}>
-          <Text style={styles.stepsTitle}>Các bước thực hiện</Text>
-          <Text style={styles.stepsCount}>{training.step?.length} Steps</Text>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>Giới thiệu</Text>
+          <Text style={styles.sectionText}>
+            {training.description ||
+              "Bài tập giúp bạn cải thiện thể lực và sự linh hoạt, phù hợp cho mọi trình độ."}
+          </Text>
+        </View>
+              
+        <View style={styles.heroStats}>
+          {infoItems.map((item, idx) => (
+            <View key={idx} style={styles.statCard}>
+              <Feather name={item.icon} size={14} color="#92A3FD" />
+              <Text style={styles.statLabel}>{item.label}</Text>
+              <Text style={styles.statValue}>{item.value}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>Các bước thực hiện</Text>
+          <Text style={styles.sectionMeta}>{training.step?.length || 0} bước</Text>
         </View>
 
-        {training.step?.map((s, i) => (
-          <View key={i} style={styles.stepRow}>
-            <View style={styles.stepNumberContainer}>
-              <Text style={styles.stepNumber}>
-                {String(i + 1).padStart(2, "0")}
-              </Text>
-
-              {i !== training.step.length - 1 && (
-                <View style={styles.stepLine} />
-              )}
+        <View style={styles.stepsList}>
+          {training.step?.map((step, index) => (
+            <View key={index} style={styles.stepCard}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>{index + 1}</Text>
+              </View>
+              <Text style={styles.stepDescription}>{step}</Text>
             </View>
+          ))}
+        </View>
 
-            <View style={styles.stepContent}>
-              <Text style={styles.stepText}>{s}</Text>
-            </View>
-          </View>
-        ))}
-
-        <TouchableOpacity
-          style={styles.completeButton}
-          onPress={handleComplete}
-        >
-          <Text style={styles.completeButtonText}>Hoàn thành</Text>
+        <TouchableOpacity onPress={handleComplete} style={styles.completeButton}>
+          <LinearGradient
+            colors={["#92A3FD", "#9DCEFF"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.completeButtonGradient}
+          >
+            <Feather name="check-circle" size={18} color="#FFFFFF" />
+            <Text style={styles.completeButtonText}>Hoàn thành buổi tập</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
       {/* Feedback Modal */}
@@ -206,108 +248,181 @@ export default function TrainingDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  scroll: { padding: 15 },
-  header: { marginTop: 10, marginBottom: 10 },
+  container: {
+    flex: 1,
+    backgroundColor: "#F6F8FB",
+  },
+  heroWrapper: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 12,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    marginBottom: 10,
+  },
+  heroHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 8,
+  },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 20,
-    backgroundColor: "#eee",
   },
-  videoBox: {
-    width: "100%",
-    height: 220,
-    borderRadius: 10,
-    overflow: "hidden",
-    marginBottom: 15,
-  },
-  video: { width: "100%", height: "100%" },
-  title: { fontSize: 20, fontWeight: "bold", marginTop: 10 },
-  subtitle: {
-    fontSize: 16,
-    color: "#000",
-    fontWeight: "600",
-  },
-
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 15,
-    marginBottom: 6,
-  },
-  text: { fontSize: 14, lineHeight: 20, color: "#555" },
-  buttonContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    backgroundColor: "#FFFFFF",
-  },
-
-  completeButton: {
-    backgroundColor: "#92A3FD",
-    paddingVertical: 15,
-    borderRadius: 50,
-    alignItems: "center",
-    shadowColor: "#9DCEFF",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-
-  completeButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  stepRow: {
-    flexDirection: "row",
-    marginBottom: 15,
-  },
-  stepNumberContainer: {
-    alignItems: "center",
-    marginRight: 10,
-  },
-  stepNumber: {
-    color: "#A78BFA",
-    fontWeight: "700",
-  },
-  stepLine: {
-    width: 1,
-    height: 30,
-    backgroundColor: "#E5D4FF",
-    borderStyle: "dotted",
-    marginTop: 2,
-  },
-  stepContent: {
-    backgroundColor: "#F8F5FF",
-    padding: 12,
-    borderRadius: 10,
+  heroInfo: {
     flex: 1,
   },
-  stepText: {
-    fontSize: 14,
-    color: "#444",
-    lineHeight: 20,
-  },
-  stepsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-    marginTop: 15,
-  },
-  stepsTitle: {
+  heroTitle: {
     fontSize: 18,
+    fontWeight: FONTS.bold,
+    color: "#1D1617",
+  },
+  heroStats: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 6,
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  statCard: {
+    flex: 0,
+    minWidth: 180,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    gap: 2,
+    ...SHADOWS.medium,
+  },
+  statLabel: {
+    fontSize: 15,
+    color: "#7B6F72",
+    fontWeight: "600",
+  },
+  statValue: {
+    fontSize: 15,
     fontWeight: "700",
     color: "#1D1617",
   },
-  stepsCount: {
-    fontSize: 12,
+  content: {
+    flex: 1,
+    marginTop: -20,
+  },
+  contentContainer: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  videoCard: {
+    height: 230,
+    borderRadius: 24,
+    overflow: "hidden",
+    backgroundColor: "#000",
+    marginBottom: 20,
+    ...SHADOWS.medium,
+  },
+  video: {
+    width: "100%",
+    height: "100%",
+  },
+  videoPlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#EEF6FF",
+  },
+  videoPlaceholderText: {
+    marginTop: 8,
+    color: "#7B6F72",
+    fontWeight: "600",
+  },
+  sectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    ...SHADOWS.small,
+  },
+  sectionLabel: {
+    fontSize: 18,
+    fontWeight: FONTS.bold,
+    color: "#1D1617",
+    marginBottom: 10,
+  },
+  sectionText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#7B6F72",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  sectionMeta: {
+    fontSize: 13,
     color: "#ADA4A5",
-    fontWeight: "500",
+    fontWeight: "600",
+  },
+  stepsList: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  stepCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    ...SHADOWS.small,
+  },
+  stepNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#EEF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stepNumberText: {
+    color: "#92A3FD",
+    fontWeight: "700",
+  },
+  stepDescription: {
+    flex: 1,
+    fontSize: 14,
+    color: "#4D4C4D",
+    lineHeight: 20,
+  },
+  completeButton: {
+    borderRadius: 20,
+    overflow: "hidden",
+    ...SHADOWS.medium,
+  },
+  completeButtonGradient: {
+    paddingVertical: 16,
+    borderRadius: 20,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  completeButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
   },
   modalOverlay: {
     flex: 1,
@@ -319,11 +434,11 @@ const styles = StyleSheet.create({
   modalCard: {
     width: "100%",
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
     color: "#1D1617",
     textAlign: "center",
@@ -340,11 +455,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
+    gap: 8,
   },
   feelingPill: {
     flex: 1,
     paddingVertical: 10,
-    marginHorizontal: 4,
     borderRadius: 24,
     backgroundColor: "#F7F8F8",
     borderWidth: 1,
@@ -363,7 +478,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   noteInput: {
-    minHeight: 90,
+    minHeight: 100,
     borderWidth: 1,
     borderColor: "#E1E5E9",
     backgroundColor: "#F7F8F8",
@@ -378,24 +493,27 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 14,
+    gap: 12,
   },
   modalButton: {
+    flex: 1,
     backgroundColor: "#92A3FD",
-    paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 12,
+    alignItems: "center",
   },
   modalButtonText: {
     color: "#FFFFFF",
     fontWeight: "700",
   },
   modalButtonGhost: {
-    paddingHorizontal: 18,
+    flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E1E5E9",
     backgroundColor: "#F7F8F8",
+    alignItems: "center",
   },
   modalButtonGhostText: {
     color: "#1D1617",

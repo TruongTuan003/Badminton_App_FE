@@ -1,6 +1,8 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
+import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
 import {
   Dimensions,
   ScrollView,
@@ -237,6 +239,7 @@ export default function HomeScreen({ navigation, route }) {
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -251,7 +254,12 @@ export default function HomeScreen({ navigation, route }) {
         </View>
 
         {/* BMI Card */}
-        <View style={styles.bmiCard}>
+        <LinearGradient
+          colors={["#D0E5FF", "#E8F0FF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.bmiCard}
+        >
           <View style={styles.bmiInfo}>
             <Text style={styles.bmiTitle}>BMI (Body Mass Index)</Text>
             <Text style={styles.bmiSubtitle}>
@@ -269,26 +277,42 @@ export default function HomeScreen({ navigation, route }) {
               <Text style={styles.bmiValueText}>{bmi.value}</Text>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Schedule Card */}
-        <View style={styles.scheduleCard}>
+        <LinearGradient
+          colors={["#EEF6FF", "#F3F5FF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.scheduleCard}
+        >
           <View style={styles.scheduleHeader}>
-            <Text style={styles.scheduleTitle}>Lịch Tập Hôm Nay</Text>
+            <View style={styles.scheduleTitleContainer}>
+              <View style={styles.scheduleTitleIcon}>
+                <Feather name="activity" size={20} color="#92A3FD" />
+              </View>
+              <Text style={styles.scheduleTitle}>Lịch Tập Hôm Nay</Text>
+            </View>
             <TouchableOpacity
               style={styles.viewAllButton}
               onPress={() => navigation.navigate("Schedule")}
             >
               <Text style={styles.viewAllText}>Xem tất cả</Text>
+              <Feather name="chevron-right" size={14} color="#92A3FD" />
             </TouchableOpacity>
           </View>
 
           {todaySchedule ? (
             <View style={styles.scheduleContent}>
               <View style={styles.scheduleInfo}>
-                <View style={styles.iconContainer}>
-                  <Feather name="activity" size={28} color="#92A3FD" />
-                </View>
+                <LinearGradient
+                  colors={["#92A3FD", "#9DCEFF"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.iconContainer}
+                >
+                  <Feather name="activity" size={28} color="#FFFFFF" />
+                </LinearGradient>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.scheduleName}>
                     {todaySchedule.workoutId?.title || "Không có bài tập"}
@@ -296,12 +320,19 @@ export default function HomeScreen({ navigation, route }) {
                   <Text style={styles.scheduleNote}>
                     {todaySchedule.note || "Chuẩn bị cho buổi tập này"}
                   </Text>
-                  <Text style={styles.scheduleTime}>
-                    🕒 {todaySchedule.time || "--:--"} |{" "}
-                    {todaySchedule.status === "done"
-                      ? "✅ Hoàn thành"
-                      : "Đang chờ"}
-                  </Text>
+                  <View style={styles.scheduleTimeContainer}>
+                    <Text style={styles.scheduleTime}>
+                      🕒 {todaySchedule.time || "--:--"}
+                    </Text>
+                    <View style={[
+                      styles.statusBadge,
+                      todaySchedule.status === "done" ? styles.statusDone : styles.statusPending
+                    ]}>
+                      <Text style={styles.statusText}>
+                        {todaySchedule.status === "done" ? "✅ Hoàn thành" : "⏳ Đang chờ"}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </View>
 
@@ -313,12 +344,22 @@ export default function HomeScreen({ navigation, route }) {
                   })
                 }
               >
-                <Text style={styles.startButtonText}>Bắt đầu ngay</Text>
+                <LinearGradient
+                  colors={["#92A3FD", "#9DCEFF"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.startButtonGradient}
+                >
+                  <Text style={styles.startButtonText}>Bắt đầu ngay</Text>
+                  <Feather name="arrow-right" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.emptySchedule}>
-              <Feather name="calendar" size={24} color="#7B6F72" />
+              <View style={styles.emptyIconContainer}>
+                <Feather name="calendar" size={32} color="#92A3FD" />
+              </View>
               <Text style={styles.emptyText}>Bạn chưa có lịch tập hôm nay</Text>
               <TouchableOpacity
                 style={styles.createButton}
@@ -328,31 +369,53 @@ export default function HomeScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </LinearGradient>
 
         {/* Meal Card */}
-        <View style={styles.mealCard}>
+        <LinearGradient
+          colors={["#FFF5E8", "#FFE9D6"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.mealCard}
+        >
           <View style={styles.scheduleHeader}>
-            <Text style={styles.mealTitle}>Thực đơn hôm nay</Text>
+            <View style={styles.scheduleTitleContainer}>
+              <View style={styles.mealTitleIcon}>
+                <Feather name="coffee" size={20} color="#FF9671" />
+              </View>
+              <Text style={styles.mealTitle}>Thực đơn hôm nay</Text>
+            </View>
             <TouchableOpacity
               style={styles.pillButtonDanger}
               onPress={() => navigation.navigate("Menu")}
             >
               <Text style={styles.pillButtonDangerText}>Chi tiết</Text>
+              <Feather name="chevron-right" size={14} color="#FF6B6B" />
             </TouchableOpacity>
           </View>
 
           {todayMeals && todayMeals.length > 0 ? (
             <>
               <View style={styles.mealRow}>
-                <Text style={styles.mealCaloriesLeft}>
-                  {mealSummary.calories}/2500
-                </Text>
-                <Text style={styles.mealCaloriesLabel}>Calories</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4,}}>
+                  <Text style={styles.mealCaloriesLeft}>
+                    {mealSummary.calories}
+                  </Text>
+                  <Text style={styles.mealCaloriesTotal}>/ 2500</Text>
+                </View>
+                <View style={styles.mealCaloriesInfo}>
+                  <Text style={styles.mealCaloriesLabel}>Calories</Text>
+                  <Text style={styles.mealCaloriesPercent}>
+                    {Math.round((mealSummary.calories / 2500) * 100)}%
+                  </Text>
+                </View>
               </View>
 
               <View style={styles.progressBar}>
-                <View
+                <LinearGradient
+                  colors={["#7ED7B5", "#4ECDC4"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
                   style={[
                     styles.progressFill,
                     {
@@ -367,7 +430,9 @@ export default function HomeScreen({ navigation, route }) {
             </>
           ) : (
             <View style={styles.emptySchedule}>
-              <Feather name="calendar" size={24} color="#7B6F72" />
+              <View style={styles.emptyIconContainerMeal}>
+                <Feather name="coffee" size={32} color="#FF9671" />
+              </View>
               <Text style={styles.emptyText}>Bạn chưa có thực đơn hôm nay</Text>
               <TouchableOpacity
                 style={styles.createButton}
@@ -443,56 +508,68 @@ export default function HomeScreen({ navigation, route }) {
                 }}
               >
                 <Text style={styles.createButtonText}>
-                  {loading ? "Đang tạo..." : "Tạo thực đơn ngay"}
+                  {loading ? "AI đang tạo..." : "Tạo thực đơn ngay"}
                 </Text>
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </LinearGradient>
 
         {/* Progress */}
-        <Text style={styles.sectionTitle}>Tiến trình</Text>
-
-        {/* Workout Progress */}
-        <View style={styles.workoutProgressContainer}>
-          <View style={styles.workoutProgressHeader}>
-            <Text style={styles.workoutProgressTitle}>Số bài tập đã hoàn thành</Text>
+        <LinearGradient
+          colors={["#F8F5FF", "#F0EBFF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.progressCard}
+        >
+          <View style={styles.progressHeader}>
+            <View style={styles.scheduleTitleContainer}>
+              <View style={styles.progressTitleIcon}>
+                <Feather name="trending-up" size={20} color="#C58BF2" />
+              </View>
+              <Text style={styles.progressTitle}>Tiến trình</Text>
+            </View>
             <View style={styles.weeklyButton}>
               <Text style={styles.weeklyButtonText}>Weekly</Text>
-              <Feather name="chevron-down" size={16} color="#92A3FD" />
+              <Feather name="chevron-down" size={16} color="#C58BF2" />
             </View>
           </View>
 
-          {/* Workout chart */}
-          <View style={styles.workoutChart}>
-            <LineChart
-              data={workoutData}
-              width={320}
-              height={180}
-              chartConfig={{
-                backgroundColor: "#ffffff",
-                backgroundGradientFrom: "#ffffff",
-                backgroundGradientTo: "#ffffff",
-                decimalPlaces: 0,
-                color: () => "#92A3FD",
-                labelColor: () => "#333333",
-                style: {
+          {/* Workout Progress */}
+          <View style={styles.workoutProgressContainer}>
+            <Text style={styles.workoutProgressTitle}>Số bài tập đã hoàn thành</Text>
+
+            {/* Workout chart */}
+            <View style={styles.workoutChart}>
+              <LineChart
+                data={workoutData}
+                width={320}
+                height={180}
+                chartConfig={{
+                  backgroundColor: "#ffffff",
+                  backgroundGradientFrom: "#ffffff",
+                  backgroundGradientTo: "#ffffff",
+                  decimalPlaces: 0,
+                  color: () => "#C58BF2",
+                  labelColor: () => "#333333",
+                  style: {
+                    borderRadius: 16,
+                  },
+                  propsForDots: {
+                    r: "6",
+                    strokeWidth: "2",
+                    stroke: "#C58BF2",
+                  },
+                }}
+                bezier
+                style={{
+                  marginVertical: 8,
                   borderRadius: 16,
-                },
-                propsForDots: {
-                  r: "6",
-                  strokeWidth: "2",
-                  stroke: "#92A3FD",
-                },
-              }}
-              bezier
-              style={{
-                marginVertical: 8,
-                borderRadius: 16,
-              }}
-            />
+                }}
+              />
+            </View>
           </View>
-        </View>
+        </LinearGradient>
       </ScrollView>
       <ChatBotAI />
       <View style={styles.bottomNav}>
@@ -558,6 +635,10 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  scrollViewContent: {
+    paddingBottom: 45,
   },
   header: {
     flexDirection: "row",
@@ -568,8 +649,9 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 20,
-    color: "#ADA4A5",
+    color: "#1D1617",
     marginBottom: 4,
+    fontWeight: FONTS.semiBold,
   },
   userName: {
     fontSize: 24,
@@ -578,8 +660,9 @@ const styles = StyleSheet.create({
   },
   userSubtitle: {
     marginTop: 4,
-    fontSize: 12,
     color: "#7B6F72",
+    fontWeight: FONTS.medium,
+    fontSize: 15,
   },
   notificationButton: {
     width: 40,
@@ -593,8 +676,7 @@ const styles = StyleSheet.create({
   // BMI Card
   bmiCard: {
     flexDirection: "row",
-    backgroundColor: "#92A3FD",
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 20,
     shadowColor: "#92A3FD",
@@ -605,6 +687,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   bmiInfo: {
     flex: 3,
@@ -612,24 +696,23 @@ const styles = StyleSheet.create({
   bmiTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#FFFFFF",
+    color: "#1D1617",
     marginBottom: 5,
   },
   bmiSubtitle: {
     fontSize: 12,
-    color: "#FFFFFF",
-    opacity: 0.7,
+    color: "#7B6F72",
     marginBottom: 15,
   },
   viewMoreButton: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#92A3FD",
     borderRadius: 50,
     paddingVertical: 8,
     paddingHorizontal: 15,
     alignSelf: "flex-start",
   },
   viewMoreText: {
-    color: "#92A3FD",
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "600",
   },
@@ -642,7 +725,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: "#C58BF2",
+    backgroundColor: "#92A3FD",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -653,96 +736,181 @@ const styles = StyleSheet.create({
   },
 
   scheduleCard: {
-    backgroundColor: "#F3F5FF",
-    borderRadius: 22,
-    padding: 18,
+    borderRadius: 24,
+    padding: 20,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowColor: "#92A3FD",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "rgba(146, 163, 253, 0.2)",
   },
   scheduleHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 16,
+  },
+  scheduleTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  scheduleTitleIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(146, 163, 253, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   scheduleTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#1D1617",
   },
   viewAllButton: {
-    backgroundColor: "#EEF6FF",
-    paddingVertical: 5,
-    paddingHorizontal: 12,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
     borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    shadowColor: "#92A3FD",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   viewAllText: {
     color: "#92A3FD",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
   },
   scheduleContent: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 15,
-    marginTop: 5,
+    borderRadius: 20,
+    padding: 18,
+    marginTop: 8,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(146, 163, 253, 0.1)",
   },
   scheduleInfo: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 10,
+    marginBottom: 16,
   },
   iconContainer: {
-    width: 45,
-    height: 45,
-    borderRadius: 22,
-    backgroundColor: "#EEF6FF",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
+    shadowColor: "#92A3FD",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   scheduleName: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
     color: "#1D1617",
-    marginBottom: 4,
+    marginBottom: 6,
+    lineHeight: 24,
   },
   scheduleNote: {
-    fontSize: 13,
+    fontSize: 14,
     color: "#7B6F72",
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  scheduleTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
   },
   scheduleTime: {
+    fontSize: 13,
+    color: "#7B6F72",
+    fontWeight: "500",
+  },
+  statusBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  statusDone: {
+    backgroundColor: "#E8F5E9",
+  },
+  statusPending: {
+    backgroundColor: "#FFF3E0",
+  },
+  statusText: {
     fontSize: 12,
-    color: "#ADA4A5",
+    fontWeight: "600",
+    color: "#1D1617",
   },
   startButton: {
-    backgroundColor: "#92A3FD",
-    paddingVertical: 10,
-    borderRadius: 14,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#92A3FD",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  startButtonGradient: {
+    paddingVertical: 14,
+    borderRadius: 16,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
   },
   startButtonText: {
     color: "#FFFFFF",
     fontWeight: "700",
+    fontSize: 16,
   },
   emptySchedule: {
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 20,
+    paddingVertical: 24,
+  },
+  emptyIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(146, 163, 253, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  emptyIconContainerMeal: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(255, 150, 113, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
   },
   emptyText: {
     color: "#7B6F72",
-    fontSize: 14,
-    marginVertical: 8,
+    fontSize: 15,
+    marginVertical: 10,
+    fontWeight: "500",
+    textAlign: "center",
   },
   createButton: {
     backgroundColor: "#92A3FD",
@@ -752,60 +920,102 @@ const styles = StyleSheet.create({
   },
   createButtonText: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "600",
   },
 
   // Meal Card
   mealCard: {
-    backgroundColor: "#EEDCCF",
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 16,
+    shadowColor: "#FF9671",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 150, 113, 0.2)",
+  },
+  mealTitleIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 150, 113, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   mealTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#1D1617",
   },
   pillButtonDanger: {
-    backgroundColor: "#FFE9E8",
+    backgroundColor: "#FFFFFF",
     paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    shadowColor: "#FF6B6B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   pillButtonDangerText: {
     color: "#FF6B6B",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
   },
   mealRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
-    marginBottom: 8,
+    alignItems: "flex-start",
+    marginBottom: 5,
   },
   mealCaloriesLeft: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 25,
+    fontWeight: "700",
     color: "#1D1617",
+    lineHeight: 38,
+  },
+  mealCaloriesTotal: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#7B6F72",
+    marginTop: 2,
+  },
+  mealCaloriesInfo: {
+    alignItems: "flex-end",
   },
   mealCaloriesLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#7B6F72",
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  mealCaloriesPercent: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FF9671",
   },
   progressBar: {
-    height: 10,
-    backgroundColor: "rgba(0,0,0,0.1)",
-    borderRadius: 6,
+    height: 12,
+    backgroundColor: "rgba(255, 150, 113, 0.15)",
+    borderRadius: 8,
     overflow: "hidden",
+    marginTop: 4,
   },
   progressFill: {
-    width: "60%",
     height: "100%",
-    backgroundColor: "#7ED7B5",
-    borderRadius: 6,
+    borderRadius: 8,
+    shadowColor: "#7ED7B5",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   mealFooter: {
     marginTop: 8,
@@ -822,6 +1032,37 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
+    fontWeight: "bold",
+    color: "#1D1617",
+  },
+  progressCard: {
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: "#C58BF2",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "rgba(197, 139, 242, 0.2)",
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  progressTitleIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(197, 139, 242, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  progressTitle: {
+    fontSize: 20,
     fontWeight: "bold",
     color: "#1D1617",
   },
@@ -999,7 +1240,7 @@ const styles = StyleSheet.create({
 
   // Workout Progress
   workoutProgressContainer: {
-    marginBottom: 20,
+    marginTop: 8,
   },
   workoutProgressHeader: {
     flexDirection: "row",
@@ -1011,24 +1252,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#1D1617",
+    marginBottom: 12,
   },
   weeklyButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EEF6FF",
-    borderRadius: 50,
-    paddingVertical: 5,
-    paddingHorizontal: 15,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    gap: 4,
+    shadowColor: "#C58BF2",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   weeklyButtonText: {
-    color: "#92A3FD",
-    fontSize: 12,
+    color: "#C58BF2",
+    fontSize: 13,
     fontWeight: "600",
-    marginRight: 5,
   },
   workoutChart: {
     alignItems: "center",
-    marginBottom: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
 
   // Latest Workout

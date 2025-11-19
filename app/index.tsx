@@ -1,9 +1,8 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ActivityHistoryScreen from '../src/screens/ActivityHistoryScreen';
 import AuthScreen from '../src/screens/AuthScreen';
-import BadmintonSkillsScreen from '../src/screens/BadmintonSkillsScreen';
-import BasicScreen from '../src/screens/BasicScreen';
 import EditProfileScreen from '../src/screens/EditProfileScreen';
 import ExerciseDetailScreen from '../src/screens/ExerciseDetailScreen';
 import FoodScreen from '../src/screens/FoodScreen';
@@ -13,8 +12,6 @@ import HomeScreen from '../src/screens/HomeScreen';
 import MealPlanSelectScreen from '../src/screens/MealPlanSelectScreen';
 import MenuDetailScreen from '../src/screens/MenuDetailScreen';
 import MenuScreen from '../src/screens/MenuScreen';
-import TrainingPlanListScreen from '../src/screens/TrainingPlanListScreen';
-import TrainingPlanDetailScreen from '../src/screens/TrainingPlanDetailScreen';
 import OnboardingScreen from '../src/screens/OnBoardingScreen';
 import OTPVerificationScreen from '../src/screens/OTPVerificationScreen';
 import ProfileScreen from '../src/screens/ProfileScreen';
@@ -23,6 +20,8 @@ import ResetPasswordScreen from '../src/screens/ResetPasswordScreen';
 import ScheduleScreen from '../src/screens/ScheduleScreen';
 import TrainingDetailScreen from '../src/screens/TrainingDetailScreen';
 import TrainingListScreen from '../src/screens/TrainingListScreen';
+import TrainingPlanDetailScreen from '../src/screens/TrainingPlanDetailScreen';
+import TrainingPlanListScreen from '../src/screens/TrainingPlanListScreen';
 import UserScreen from '../src/screens/UserScreen';
 import WelcomeScreen from '../src/screens/WelcomeScreen';
 import WorkoutScreen from '../src/screens/WorkoutScreen';
@@ -32,6 +31,7 @@ const Stack = createStackNavigator();
 
 export default function App() {
   return (
+    <SafeAreaProvider>
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Auth" component={AuthScreen} />
@@ -50,8 +50,6 @@ export default function App() {
       <Stack.Screen name="Menu" component={MenuScreen} />
       <Stack.Screen name="MenuDetail" component={MenuDetailScreen} />
       <Stack.Screen name="Food" component={FoodScreen} />
-      <Stack.Screen name="BadmintonSkills" component={BadmintonSkillsScreen} />
-      <Stack.Screen name="Basic" component={BasicScreen} />
       <Stack.Screen name="ExerciseDetail" component={ExerciseDetailScreen} />
       <Stack.Screen name="TrainingList" component={TrainingListScreen} />
       <Stack.Screen name="TrainingDetail" component={TrainingDetailScreen} />
@@ -59,7 +57,7 @@ export default function App() {
       <Stack.Screen name="TrainingPlanDetail" component={TrainingPlanDetailScreen} />
       <Stack.Screen name="MealPlanSelect" component={MealPlanSelectScreen} />
       <Stack.Screen name="ActivityHistory" component={ActivityHistoryScreen} options={{ title: 'Lịch sử hoạt động', headerShown: false }} />
-
     </Stack.Navigator>
+    </SafeAreaProvider>
   );
 }

@@ -1,13 +1,14 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { trainingLogAPI } from "../services/api";
 
 export default function ActivityHistoryScreen({ navigation }) {
@@ -54,7 +55,7 @@ const renderItem = ({ item }) => {
 };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -81,7 +82,7 @@ const renderItem = ({ item }) => {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -92,7 +93,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 50,
     paddingBottom: 10,
   },
   headerTitle: { fontSize: 20, fontWeight: "700", color: "#1D1617" },

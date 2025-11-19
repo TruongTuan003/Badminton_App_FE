@@ -2,19 +2,20 @@ import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
 import {
+  Alert,
   Dimensions,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ChatBotAI from "../components/ChatBotAI";
 import { mealScheduleAPI, scheduleAPI, trainingLogAPI, userAPI } from "../services/api";
+import { FONTS } from "../styles/commonStyles";
 import { calculateBMI } from "../utils/bmiCalculator";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
@@ -235,7 +236,7 @@ export default function HomeScreen({ navigation, route }) {
   const workoutData = getWorkoutData();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}
@@ -622,7 +623,7 @@ export default function HomeScreen({ navigation, route }) {
           />
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -644,7 +645,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 50,
     marginBottom: 20,
   },
   welcomeText: {

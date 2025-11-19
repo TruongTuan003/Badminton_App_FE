@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -10,8 +10,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { scheduleAPI } from "../services/api";
+import { COLORS, FONTS } from "../styles/commonStyles";
 
 export default function WorkoutScreen({ navigation }) {
   const [todaySchedule, setTodaySchedule] = useState(null);
@@ -63,7 +64,7 @@ export default function WorkoutScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header with Gradient */}
       <LinearGradient
         colors={["#9DCEFF", "#92A3FD"]}
@@ -288,19 +289,18 @@ export default function WorkoutScreen({ navigation }) {
 
         <View style={styles.bottomSpacing}></View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: "#FFFFFF" 
+    backgroundColor: "#FFFFFF" ,
   },
   scrollView: { 
     flex: 1, 
     paddingHorizontal: 20,
-    marginTop: -20,
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,

@@ -12,6 +12,7 @@ import {
   View
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { mealAPI, mealScheduleAPI } from '../services/api';
 import { COLORS, FONTS, SHADOWS } from '../styles/commonStyles';
 
@@ -218,7 +219,7 @@ export default function FoodScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -402,7 +403,7 @@ export default function FoodScreen({ navigation }) {
           </View>
         </Modal>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -416,7 +417,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
     paddingBottom: 10,
   },
   headerTitle: {

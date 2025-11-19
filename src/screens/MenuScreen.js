@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { mealAPI, mealScheduleAPI } from '../services/api';
 import { COLORS, FONTS, SHADOWS } from '../styles/commonStyles';
 
@@ -313,7 +314,7 @@ export default function MenuScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -344,7 +345,7 @@ export default function MenuScreen({ navigation }) {
         <Feather name="plus" size={26} color="#FFFFFF" />
       </TouchableOpacity>
       {renderMealModal()}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -352,14 +353,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
-    position: 'relative',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
     paddingBottom: 20,
   },
   headerTitle: {

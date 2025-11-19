@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 import { authAPI } from "../services/api";
 import { COLORS, FONTS, SHADOWS, SIZES, SPACING } from "../styles/commonStyles";
@@ -70,7 +71,7 @@ export default function AuthScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.greeting}>Chào Bạn,</Text>
         <Text style={styles.title}>Chào Mừng Trở Lại</Text>
@@ -171,7 +172,7 @@ export default function AuthScreen({ navigation }) {
           <Text style={styles.registerText}>Đăng Ký</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -183,7 +184,6 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginTop: SIZES.height * 0.05,
     marginBottom: SPACING.xl,
   },
   greeting: {

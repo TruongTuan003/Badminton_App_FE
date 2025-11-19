@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { userAPI } from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -119,12 +120,14 @@ export default function EditProfileScreen({ navigation, route }) {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-       {/* Header */}
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
         <Text style={styles.title}>Chỉnh sửa hồ sơ</Text>
         <View style={styles.emptySpace} />
       </View>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+       {/* Header */}
+    
       {/* Profile Form */}
       <View style={styles.form}>
         {/* Name */}
@@ -288,6 +291,7 @@ export default function EditProfileScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -300,7 +304,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingTop: 50,
     paddingBottom: 30,
     backgroundColor: '#FFFFFF',
   },

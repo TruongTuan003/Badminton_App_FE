@@ -42,7 +42,7 @@ export default function WelcomeScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
       <ImageBackground 
         source={require('../assets/images/backgr.png')} 
@@ -72,7 +72,7 @@ export default function WelcomeScreen({ navigation }) {
           </View>
         </SafeAreaView>
       </ImageBackground>
-    </View>
+    </SafeAreaView>
   );
 }
 

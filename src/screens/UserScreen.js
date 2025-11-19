@@ -1,6 +1,7 @@
 import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { userAPI } from '../services/api';
 import { calculateBMI } from '../utils/bmiCalculator';
 
@@ -102,7 +103,7 @@ export default function UserScreen({ navigation, route }) {
     );
   };
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Hồ sơ</Text>
@@ -282,7 +283,7 @@ export default function UserScreen({ navigation, route }) {
           <Ionicons name="person" size={24} color="#C58BF2" />
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -290,7 +291,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    position: 'relative',
   },
   scrollView: {
     flex: 1,
@@ -298,8 +298,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'center',  // căn giữa theo chiều ngang
-    marginTop: 50,
+    justifyContent: 'center',  
     marginBottom: 20,
   },
   headerTitle: {

@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { SceneMap, TabBar, TabView } from "react-native-tab-view";
 import { mealScheduleAPI } from "../services/api";
 import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
@@ -178,7 +179,7 @@ export default function MealPlanSelectScreen({ navigation }) {
   });
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={["#9DCEFF", "#92A3FD"]}
         start={{ x: 0, y: 0 }}
@@ -350,7 +351,7 @@ export default function MealPlanSelectScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -358,7 +359,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F6F8FB",
-    paddingTop: 5,
   },
   heroWrapper: {
     paddingHorizontal: 20,

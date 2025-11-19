@@ -7,7 +7,7 @@ const { width, height } = Dimensions.get("window");
 
 export default function OnboardingScreen({ navigation }) {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
       <ImageBackground 
         source={require("../assets/images/backgr.png")} 
@@ -38,7 +38,7 @@ export default function OnboardingScreen({ navigation }) {
           </View>
         </SafeAreaView>
       </ImageBackground>
-    </View>
+    </SafeAreaView>
   );
 }
 

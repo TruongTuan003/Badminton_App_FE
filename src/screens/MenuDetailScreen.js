@@ -1,6 +1,6 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
-import React from "react";
 import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
 import {
   Alert,
   Image,
@@ -213,7 +213,7 @@ export default function MenuDetailScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <LinearGradient
         colors={["#9DCEFF", "#92A3FD"]}
@@ -313,7 +313,7 @@ export default function MenuDetailScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

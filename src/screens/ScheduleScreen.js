@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
-import api, { scheduleAPI } from "../services/api"; // dùng instance axios bạn có sẵn
+import api from "../services/api"; // dùng instance axios bạn có sẵn
 
 export default function ScheduleScreen({ navigation, route }) {
   // Nhận params từ navigation (nếu có)
@@ -65,19 +65,6 @@ export default function ScheduleScreen({ navigation, route }) {
   useEffect(() => {
     fetchSchedules();
   }, [fetchSchedules]);
-
-  // Refresh khi nhận params từ navigation
-  useEffect(() => {
-    if (route?.params?.refresh) {
-      console.log("🔄 Refreshing schedule from navigation params");
-      if (route.params.selectedDate) {
-        setSelectedDate(new Date(route.params.selectedDate));
-      } else {
-        fetchSchedules();
-      }
-    }
-  }, [route?.params?.refresh, fetchSchedules]);
-
   // Load lại dữ liệu khi quay lại màn hình
   useFocusEffect(
     useCallback(() => {

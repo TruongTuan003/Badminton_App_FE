@@ -2,10 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 
-const API_URL = 'http://192.168.10.49:3000/api'; 
-
-
-
+const API_URL = 'https://badminton-app-be.onrender.com/api'; 
 
 const api = axios.create({
   baseURL: API_URL,

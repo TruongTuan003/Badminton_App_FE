@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bot, MessageCircleX, Trash, X } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import api from "../services/api";
 import {
   ActivityIndicator,
@@ -18,16 +18,30 @@ import {
 } from "react-native";
 import Markdown from "react-native-markdown-display";
 
-export default function ChatBotAI() {
+export default function ChatBotAI({ isOpen: externalIsOpen, onToggle: externalOnToggle }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-
+  const [isChatOpen, setIsChatOpen] = useState(externalIsOpen || false);
+  
   const scrollViewRef = useRef(null);
-  const chatAnimation = useRef(new Animated.Value(0)).current;
+  const chatAnimation = useRef(new Animated.Value(externalIsOpen ? 1 : 0)).current;
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [hintVisible, setHintVisible] = useState(true);
+  
+  // Sync với external state nếu có
+  useEffect(() => {
+    if (externalIsOpen !== undefined) {
+      setIsChatOpen(externalIsOpen);
+      // Trigger animation khi external state thay đổi
+      Animated.spring(chatAnimation, {
+        toValue: externalIsOpen ? 1 : 0,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }).start();
+    }
+  }, [externalIsOpen]);
 
   const generateId = () => Math.random().toString(36).slice(2, 10);
 
@@ -55,9 +69,15 @@ export default function ChatBotAI() {
 
   // ✅ Toggle chat popup
   const toggleChat = () => {
-    const toValue = isChatOpen ? 0 : 1;
-    setIsChatOpen(!isChatOpen);
+    const newValue = !isChatOpen;
+    setIsChatOpen(newValue);
+    
+    // Notify parent component if callback provided
+    if (externalOnToggle) {
+      externalOnToggle(newValue);
+    }
 
+    const toValue = newValue ? 1 : 0;
     Animated.spring(chatAnimation, {
       toValue,
       useNativeDriver: true,
@@ -217,10 +237,13 @@ export default function ChatBotAI() {
     ]);
   };
 
+  // Ẩn floating button nếu được control từ ngoài
+  const showFloatingButton = externalIsOpen === undefined;
+
   return (
     <View>
       {/* 🔘 Floating Chat Button */}
-      {!isChatOpen && hintVisible && (
+      {showFloatingButton && !isChatOpen && hintVisible && (
         <Animated.View
           style={[
             styles.helperBubble,
@@ -237,18 +260,20 @@ export default function ChatBotAI() {
         </Animated.View>
       )}
 
-      <LinearGradient
-        colors={["#92A3FD", "#9DCEFF"]}
-        style={styles.linearChatToggle}
-      >
-        <TouchableOpacity style={styles.chatToggle} onPress={toggleChat}>
-          {isChatOpen ? (
-            <MessageCircleX size={28} color="#fff" strokeWidth={1.5} />
-          ) : (
-            <Bot size={28} color="#fff" strokeWidth={1.5} />
-          )}
-        </TouchableOpacity>
-      </LinearGradient>
+      {showFloatingButton && (
+        <LinearGradient
+          colors={["#92A3FD", "#9DCEFF"]}
+          style={styles.linearChatToggle}
+        >
+          <TouchableOpacity style={styles.chatToggle} onPress={toggleChat}>
+            {isChatOpen ? (
+              <MessageCircleX size={28} color="#fff" strokeWidth={1.5} />
+            ) : (
+              <Bot size={28} color="#fff" strokeWidth={1.5} />
+            )}
+          </TouchableOpacity>
+        </LinearGradient>
+      )}
 
       {/* 💬 Chat Modal */}
       {isChatOpen && (

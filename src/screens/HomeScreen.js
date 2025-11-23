@@ -24,6 +24,7 @@ export default function HomeScreen({ navigation, route }) {
   // Lấy thông tin người dùng từ API
   const [userData, setUserData] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState("home");
+  const [isChatBotOpen, setIsChatBotOpen] = React.useState(false);
   const [todaySchedule, setTodaySchedule] = React.useState(null);
   const [todayMeals, setTodayMeals] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
@@ -572,7 +573,7 @@ export default function HomeScreen({ navigation, route }) {
           </View>
         </LinearGradient>
       </ScrollView>
-      <ChatBotAI />
+      <ChatBotAI isOpen={isChatBotOpen} onToggle={setIsChatBotOpen} />
       <View style={styles.bottomNav}>
         <TouchableOpacity
           style={styles.navItem}
@@ -597,8 +598,15 @@ export default function HomeScreen({ navigation, route }) {
             color={activeTab === "workout" ? "#92A3FD" : "#ADA4A5"}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navButton}>
-          <Feather name="search" size={24} color="#FFFFFF" />
+        <TouchableOpacity 
+          style={styles.navButton}
+          onPress={() => setIsChatBotOpen(!isChatBotOpen)}
+        >
+          <Feather 
+            name={isChatBotOpen ? "x" : "message-circle"} 
+            size={24} 
+            color="#FFFFFF" 
+          />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.navItem}

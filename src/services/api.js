@@ -2,12 +2,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 
-const API_URL = 'https://badminton-app-be.onrender.com/api'; 
+// API URL - Thay đổi theo môi trường
+// Local development: sử dụng IP máy tính của bạn (ví dụ: http://192.168.1.19:3000/api)
+// Production: https://badminton-app-be.onrender.com/api
+// 
+// ĐỂ THAY ĐỔI IP LOCAL:
+// 1. Tìm IP của máy tính: 
+//    - Windows: mở CMD và gõ "ipconfig" → tìm "IPv4 Address"
+//    - Mac/Linux: mở Terminal và gõ "ifconfig" hoặc "ip addr"
+// 2. Thay đổi IP bên dưới thành IP của bạn
+
+const API_URL = 'http://192.168.1.19:3000/api';  // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
+// const API_URL = 'https://badminton-app-be.onrender.com/api';  // Uncomment này để dùng production 
 
 const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 30000, 
+  timeout: 60000, // Tăng timeout lên 60 giây cho local server
 });
 
 api.interceptors.request.use(
@@ -16,9 +27,23 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor để log errors
+api.interceptors.response.use(
+  (response) => {
+    console.log('✅ API Response:', response.config.url, response.status);
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
 export const authAPI = {

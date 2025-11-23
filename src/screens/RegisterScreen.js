@@ -64,10 +64,29 @@ const handleRegister = async () => {
       [{ text: 'OK', onPress: () => navigation.navigate("OTPVerification", { userData: { email } }) }]
     );
   } catch (error) {
-    const errorMessage = error.response?.data?.message;
+    console.error('Register error:', error);
+    console.error('Error response:', error.response?.data);
+    console.error('Error message:', error.message);
+    
+    let errorMessage = "Có lỗi xảy ra khi đăng ký";
+    
+    // Xử lý lỗi network
+    if (!error.response) {
+      if (error.message?.includes('Network Error') || error.code === 'ECONNABORTED') {
+        errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet.";
+      } else if (error.message) {
+        errorMessage = `Lỗi kết nối: ${error.message}`;
+      }
+      Alert.alert('Lỗi kết nối', errorMessage);
+      return;
+    }
+    
+    // Xử lý lỗi từ API
+    const status = error.response?.status;
+    errorMessage = error.response?.data?.message || errorMessage;
     
     // Kiểm tra nếu email đang chờ xác thực OTP
-    if (error.response?.status === 409 && errorMessage?.includes('chờ xác thực OTP')) {
+    if (status === 409 && errorMessage?.includes('chờ xác thực OTP')) {
       Alert.alert(
         'Email chưa xác thực',
         'Email này đang chờ xác thực OTP. Bạn có muốn gửi lại mã OTP không?',
@@ -82,8 +101,20 @@ const handleRegister = async () => {
           }
         ]
       );
+    } else if (status === 409 && errorMessage?.includes('đã tồn tại')) {
+      Alert.alert(
+        'Email đã tồn tại',
+        'Email này đã được sử dụng. Vui lòng đăng nhập hoặc sử dụng email khác.',
+        [{ text: 'OK' }]
+      );
+    } else if (status === 500 && errorMessage?.includes('email xác thực')) {
+      Alert.alert(
+        'Lỗi gửi email',
+        'Không thể gửi email xác thực. Vui lòng kiểm tra lại email hoặc thử lại sau.',
+        [{ text: 'OK' }]
+      );
     } else {
-      Alert.alert('Lỗi', errorMessage || "Có lỗi xảy ra khi đăng ký");
+      Alert.alert('Lỗi đăng ký', errorMessage);
     }
   }
 };

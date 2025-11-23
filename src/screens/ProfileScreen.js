@@ -110,7 +110,7 @@ export default function ProfileScreen({ navigation, route }) {
       {/* Illustration Image */}
       <View style={styles.illustrationContainer}>
         <Image 
-          source={require('../assets/images/Rectangle 5708.png')} 
+          source={require('../assets/images/background.png')} 
           style={styles.illustrationImage}
           resizeMode="contain"
         />

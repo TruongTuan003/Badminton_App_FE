@@ -45,7 +45,7 @@ export default function WelcomeScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
       <ImageBackground 
-        source={require('../assets/images/backgr.png')} 
+        source={require('../assets/images/background.png')} 
         style={styles.backgroundImage}
         resizeMode="cover"
       >

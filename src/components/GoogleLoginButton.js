@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect } from "react";
-import { Alert, TouchableOpacity, StyleSheet } from "react-native";
+import { Alert, StyleSheet, TouchableOpacity } from "react-native";
 
 export default function GoogleLoginButton({ onLoginSuccess }) {
   useEffect(() => {
@@ -12,7 +12,7 @@ export default function GoogleLoginButton({ onLoginSuccess }) {
 
   const handleLogin = async () => {
     try {
-      const backendUrl = "http://192.168.10.25:3000/api/auth/google";
+      const backendUrl = "https://badminton-app-be.onrender.com/api/auth/google";
 
       const result = await WebBrowser.openAuthSessionAsync(backendUrl);
 

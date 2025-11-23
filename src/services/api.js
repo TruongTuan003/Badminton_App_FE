@@ -12,8 +12,8 @@ import axios from 'axios';
 //    - Mac/Linux: mở Terminal và gõ "ifconfig" hoặc "ip addr"
 // 2. Thay đổi IP bên dưới thành IP của bạn
 
-const API_URL = 'http://192.168.1.19:3000/api';  // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
-// const API_URL = 'https://badminton-app-be.onrender.com/api';  // Uncomment này để dùng production 
+// const API_URL = 'http://192.168.1.19:3000/api';  // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
+const API_URL = 'https://badminton-app-be.onrender.com/api';  // Uncomment này để dùng production 
 
 const api = axios.create({
   baseURL: API_URL,

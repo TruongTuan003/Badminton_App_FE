@@ -71,7 +71,7 @@ export default function ScheduleScreen({ navigation, route }) {
       fetchSchedules();
     }, [fetchSchedules])
   );
-
+  
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -85,10 +85,32 @@ export default function ScheduleScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
 
-      {/* Ngày đang chọn */}
-      <Text style={styles.dateText}>
-        Ngày: {formatDateOnly(selectedDate)}
-      </Text>
+      {/* Ngày đang chọn với nút chuyển ngày */}
+      <View style={styles.dateContainer}>
+        <TouchableOpacity
+          style={styles.dateNavButton}
+          onPress={() => {
+            const prevDate = new Date(selectedDate);
+            prevDate.setDate(prevDate.getDate() - 1);
+            setSelectedDate(prevDate);
+          }}
+        >
+          <Feather name="chevron-left" size={20} color="#92A3FD" />
+        </TouchableOpacity>
+        <Text style={styles.dateText}>
+          Ngày: {formatDateOnly(selectedDate)}
+        </Text>
+        <TouchableOpacity
+          style={styles.dateNavButton}
+          onPress={() => {
+            const nextDate = new Date(selectedDate);
+            nextDate.setDate(nextDate.getDate() + 1);
+            setSelectedDate(nextDate);
+          }}
+        >
+          <Feather name="chevron-right" size={20} color="#92A3FD" />
+        </TouchableOpacity>
+      </View>
 
       {/* Hiển thị nội dung lịch */}
       {loading ? (
@@ -220,11 +242,29 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   headerTitle: { fontSize: 20, fontWeight: "bold", color: "#1D1617" },
-  dateText: {
+  dateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 20,
+    marginBottom: 10,
+  },
+  dateNavButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F7F8F8",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+  },
+  dateText: {
     textAlign: "center",
     fontSize: 16,
-    color: "#7B6F72",
+    color: "#1D1617",
+    marginHorizontal: 16,
+    fontWeight: "600",
   },
   scheduleList: { marginTop: 20 },
   scheduleTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 10 },

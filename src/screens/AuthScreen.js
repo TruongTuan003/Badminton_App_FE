@@ -2,6 +2,7 @@ import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState } from "react";
 import {
+  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -44,26 +45,13 @@ export default function AuthScreen({ navigation }) {
     navigation.navigate("ForgotPassword", { email });
   };
 
-  const handleGoogleLogin = () => {
-    console.log("Google Login");
-    const userData = {
-      firstName: "Stefani",
-      lastName: "Wong",
-      email: "stefani.wong@gmail.com",
-      isLoggedIn: true,
-    };
-    navigation.replace("Home", userData);
-  };
-
   const handleFacebookLogin = () => {
     console.log("Facebook Login");
-    const userData = {
-      firstName: "Stefani",
-      lastName: "Wong",
-      email: "stefani.wong@facebook.com",
-      isLoggedIn: true,
-    };
-    navigation.replace("Home", userData);
+    Alert.alert(
+      "Chức năng đang phát triển",
+      "Đăng nhập bằng Facebook hiện đang được phát triển. Vui lòng sử dụng các phương thức đăng nhập khác.",
+      [{ text: "OK", style: "default" }]
+    );
   };
 
   const handleRegister = () => {

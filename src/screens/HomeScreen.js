@@ -1,4 +1,5 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Bot } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
@@ -645,14 +646,21 @@ export default function HomeScreen({ navigation, route }) {
           />
         </TouchableOpacity>
         <TouchableOpacity 
-          style={styles.navButton}
+          style={[styles.navButton, isChatBotOpen ? {} : styles.navButtonRobot]}
           onPress={() => setIsChatBotOpen(!isChatBotOpen)}
         >
-          <Feather 
-            name={isChatBotOpen ? "x" : "message-circle"} 
-            size={24} 
-            color="#FFFFFF" 
-          />
+          {isChatBotOpen ? (
+            <Feather 
+              name="x" 
+              size={24} 
+              color="#FFFFFF" 
+            />
+          ) : (
+            <Bot 
+              size={24} 
+              color="#92A3FD" 
+            />
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.navItem}
@@ -1450,6 +1458,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  navButtonRobot: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+    borderColor: "#92A3FD",
   },
   bottomSpacing: {
     height: 70,

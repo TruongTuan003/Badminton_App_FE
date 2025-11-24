@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -85,17 +86,136 @@ export default function MealPlanSelectScreen({ navigation }) {
     []
   );
 
-  const handleSelectPlan = async (plan) => {
+  // Format date thành YYYY-MM-DD
+  const formatDateOnly = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Kiểm tra xem đã có thực đơn trong khoảng thời gian chưa
+  const checkExistingMeals = async (startDate, planType) => {
     try {
-      const isoDate = selectedDate.toISOString().split("T")[0];
+      const start = new Date(startDate);
+      let endDate = new Date(start);
+      
+      if (planType === "weekly") {
+        endDate.setDate(endDate.getDate() + 6);
+      } else if (planType === "monthly") {
+        endDate.setDate(endDate.getDate() + 29);
+      } else if (planType === "daily") {
+        endDate = new Date(start);
+      }
+
+      // Kiểm tra ngày đầu tiên và ngày cuối cùng, và một vài ngày giữa
+      const datesToCheck = [];
+      const startStr = formatDateOnly(start);
+      datesToCheck.push(startStr); // Luôn kiểm tra ngày bắt đầu
+      
+      if (planType !== "daily") {
+        datesToCheck.push(formatDateOnly(endDate)); // Kiểm tra ngày cuối
+        // Kiểm tra thêm một vài ngày giữa để chắc chắn
+        const midDate = new Date(start);
+        if (planType === "weekly") {
+          midDate.setDate(midDate.getDate() + 3);
+        } else if (planType === "monthly") {
+          midDate.setDate(midDate.getDate() + 15);
+        }
+        datesToCheck.push(formatDateOnly(midDate));
+      }
+
+      // Kiểm tra các ngày quan trọng
+      let hasMeals = false;
+      for (const dateStr of datesToCheck) {
+        try {
+          const res = await mealScheduleAPI.getByDate(dateStr);
+          if (res.data && res.data.length > 0) {
+            hasMeals = true;
+            console.log(`ℹ️ Phát hiện thực đơn đã tồn tại vào ngày: ${dateStr}`);
+            break;
+          }
+        } catch (error) {
+          // Ngày không có thực đơn (404) - bỏ qua
+        }
+      }
+
+      return hasMeals;
+    } catch (error) {
+      console.error("Error checking existing meals:", error);
+      return false;
+    }
+  };
+
+  const handleSelectPlan = async (plan, shouldReplace = false) => {
+    try {
+      const isoDate = formatDateOnly(selectedDate);
+      
+      // Log ngày giờ chính xác khi tạo thực đơn
+      const now = new Date();
+      const timestamp = now.toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      
+      console.log(`📅 [${timestamp}] Bắt đầu áp dụng thực đơn:`, {
+        planName: plan.name,
+        planType: plan.type,
+        startDate: isoDate,
+        replaceExisting: shouldReplace
+      });
+
       await mealScheduleAPI.applyMealPlan({
         mealPlanId: plan._id,
         startDate: isoDate,
+        replaceExisting: shouldReplace,
       });
-      alert("Đã áp dụng thực đơn thành công!");
-      navigation.goBack();
+
+      const successTime = new Date().toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      
+      console.log(`✅ [${successTime}] Đã áp dụng thực đơn thành công!`);
+      
+      Alert.alert(
+        "Thành công",
+        shouldReplace 
+          ? `Đã ghi đè thực đơn thành công!\nThời gian: ${successTime}`
+          : `Đã áp dụng thực đơn thành công!\nThời gian: ${successTime}`,
+        [
+          {
+            text: "OK",
+            onPress: () => navigation.goBack()
+          }
+        ]
+      );
     } catch (err) {
-      alert("Lỗi khi áp dụng thực đơn!");
+      const errorTime = new Date().toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      
+      console.error(`❌ [${errorTime}] Lỗi khi áp dụng thực đơn:`, err);
+      Alert.alert(
+        "Lỗi",
+        err.response?.data?.message || "Không thể áp dụng thực đơn. Vui lòng thử lại sau."
+      );
     }
   };
 
@@ -344,7 +464,42 @@ export default function MealPlanSelectScreen({ navigation }) {
 
             <TouchableOpacity
               style={styles.applyButton}
-              onPress={() => handleSelectPlan(selectedPlan)}
+              onPress={async () => {
+                if (!selectedPlan) return;
+                
+                // Kiểm tra xem đã có thực đơn trong khoảng thời gian chưa
+                const hasExisting = await checkExistingMeals(selectedDate, selectedPlan.type);
+                
+                if (hasExisting) {
+                  // Hỏi người dùng muốn ghi đè hay thêm vào
+                  Alert.alert(
+                    "Thực đơn đã tồn tại",
+                    `Trong khoảng thời gian này bạn đã có thực đơn. Bạn muốn làm gì?`,
+                    [
+                      {
+                        text: "Hủy",
+                        style: "cancel"
+                      },
+                      {
+                        text: "Thêm vào",
+                        onPress: async () => {
+                          await handleSelectPlan(selectedPlan, false);
+                        }
+                      },
+                      {
+                        text: "Ghi đè",
+                        style: "destructive",
+                        onPress: async () => {
+                          await handleSelectPlan(selectedPlan, true);
+                        }
+                      }
+                    ]
+                  );
+                } else {
+                  // Không có thực đơn, áp dụng trực tiếp
+                  await handleSelectPlan(selectedPlan, false);
+                }
+              }}
             >
               <Text style={styles.applyButtonText}>Áp dụng thực đơn</Text>
             </TouchableOpacity>

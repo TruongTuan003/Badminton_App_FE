@@ -441,6 +441,21 @@ export default function HomeScreen({ navigation, route }) {
                 disabled={loading} // ✅ chặn bấm khi đang loading
                 onPress={async () => {
                   if (loading) return;
+                  
+                  // Log ngày giờ bắt đầu tạo thực đơn
+                  const startTime = new Date();
+                  const startTimestamp = startTime.toLocaleString('vi-VN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                  });
+                  
+                  console.log(`📅 [${startTimestamp}] Bắt đầu tạo thực đơn bằng AI...`);
+                  
                   setLoading(true);  
                   try {
                     // 1️⃣ Lấy mục tiêu người dùng
@@ -450,7 +465,7 @@ export default function HomeScreen({ navigation, route }) {
                     const goals = Array.isArray(goal) ? goal : [goal];
                     const type = "daily";
                     console.log(
-                      "🤖 Gọi AI tạo thực đơn với goals:",
+                      `🤖 [${startTimestamp}] Gọi AI tạo thực đơn với goals:`,
                       goals,
                       "và type:",
                       type
@@ -469,10 +484,20 @@ export default function HomeScreen({ navigation, route }) {
                         "⚠️ Không tìm thấy mealPlanId từ AI response:",
                         JSON.stringify(aiRes.data, null, 2)
                       );
+                      setLoading(false);
                       return;
                     }
 
-                    console.log("✅ AI tạo MealPlan thành công:", mealPlanId);
+                    const aiSuccessTime = new Date().toLocaleString('vi-VN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    });
+                    console.log(`✅ [${aiSuccessTime}] AI tạo MealPlan thành công:`, mealPlanId);
 
                     // 3️⃣ Gán meal plan đó cho user (áp dụng vào lịch)
                     await mealScheduleAPI.applyMealPlan({
@@ -484,21 +509,42 @@ export default function HomeScreen({ navigation, route }) {
                     const res = await mealScheduleAPI.getByDate(todayStr);
                     setTodayMeals(res.data);
 
-                    console.log("🎉 Đã áp dụng thực đơn thành công!");
+                    const finishTime = new Date().toLocaleString('vi-VN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    });
+                    
+                    const duration = Math.round((new Date() - startTime) / 1000);
+                    console.log(`🎉 [${finishTime}] Đã áp dụng thực đơn thành công! (Thời gian: ${duration}s)`);
                   } catch (err) {
+                    const errorTime = new Date().toLocaleString('vi-VN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    });
+                    
                     if (err.response) {
-                      console.warn(
-                        "⚠️ Lỗi tạo thực đơn (response):",
+                      console.error(
+                        `❌ [${errorTime}] Lỗi tạo thực đơn (response):`,
                         JSON.stringify(err.response.data, null, 2)
                       );
                     } else if (err.request) {
-                      console.warn(
-                        "⚠️ Lỗi tạo thực đơn (request):",
+                      console.error(
+                        `❌ [${errorTime}] Lỗi tạo thực đơn (request):`,
                         err.request
                       );
                     } else {
-                      console.warn(
-                        "⚠️ Lỗi tạo thực đơn (message):",
+                      console.error(
+                        `❌ [${errorTime}] Lỗi tạo thực đơn (message):`,
                         err.message
                       );
                     }

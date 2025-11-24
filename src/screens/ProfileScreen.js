@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { userAPI } from '../services/api';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -106,6 +107,7 @@ export default function ProfileScreen({ navigation, route }) {
   };
 
   return (
+    <SafeAreaView style={styles.container}>
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Illustration Image */}
       <View style={styles.illustrationContainer}>
@@ -246,6 +248,7 @@ export default function ProfileScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 

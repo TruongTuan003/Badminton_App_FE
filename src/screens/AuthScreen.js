@@ -19,6 +19,32 @@ export default function AuthScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const handleResendOtp = async (targetEmail) => {
+    try {
+      await authAPI.resendOtp({ email: targetEmail });
+      Alert.alert(
+        "Đã gửi lại OTP",
+        "Vui lòng kiểm tra email để lấy mã OTP mới.",
+        [
+          {
+            text: "Nhập OTP",
+            onPress: () =>
+              navigation.navigate("OTPVerification", {
+                userData: { email: targetEmail },
+              }),
+          },
+          { text: "Đóng", style: "cancel" },
+        ]
+      );
+    } catch (err) {
+      Alert.alert(
+        "Lỗi",
+        err.response?.data?.message ||
+          "Không thể gửi lại OTP. Vui lòng thử lại sau."
+      );
+    }
+  };
+
   const handleLogin = async () => {
     try {
       const res = await authAPI.login(email, password);
@@ -36,7 +62,34 @@ export default function AuthScreen({ navigation }) {
       };
       navigation.replace("Welcome", { userData });
     } catch (error) {
-      alert(error.response?.data?.message || "Email hoặc mật khẩu không đúng!");
+      
+
+      const status = error.response?.status;
+      const data = error.response?.data;
+      const message = data?.message || "Email hoặc mật khẩu không đúng!";
+
+      // Nếu account đang chờ OTP
+      if (status === 403 && data?.isPending) {
+        const targetEmail = data?.email || email;
+        Alert.alert(
+          "Tài khoản chưa xác thực",
+          "Email này đang chờ xác thực OTP. Bạn muốn làm gì?",
+          [
+            {
+              text: "Hủy",
+              style: "cancel",
+            },
+
+            {
+              text: "Gửi lại OTP",
+              onPress: () => handleResendOtp(targetEmail),
+            },
+          ]
+        );
+        return;
+      }
+
+      Alert.alert("Lỗi đăng nhập", message);
     }
   };
 

@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { userAPI } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
@@ -114,7 +115,7 @@ export default function GoalSelectionScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Bạn muốn đạt mục tiêu gì?</Text>
         <Text style={styles.subtitle}>Chúng tôi sẽ chọn lộ trình phù hợp cho người mới tập cầu lông</Text>
@@ -188,7 +189,7 @@ export default function GoalSelectionScreen({ navigation, route }) {
       >
         <Text style={styles.confirmButtonText}>Xác nhận ({selectedGoals.length} mục tiêu)</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -198,36 +198,42 @@ export default function HomeScreen({ navigation, route }) {
     heightUnit
   );
 
-  // Tính toán dữ liệu cho biểu đồ từ TrainingLog
+  // Tính toán dữ liệu cho 7 ngày gần nhất (ngày hiện tại nằm cuối)
   const getWorkoutData = () => {
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const today = new Date();
-    const data = [0, 0, 0, 0, 0, 0, 0]; // Khởi tạo mảng 7 ngày
+    const labels = [];
+    const dataset = [];
 
-    // Lấy 7 ngày gần nhất (từ 6 ngày trước đến hôm nay)
+    const formatLabel = (dateObj) => {
+      const weekdayMap = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+      const weekday = weekdayMap[dateObj.getDay()];
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      return `${weekday}`;
+    };
+
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      
-      // Đặt thời gian về 0:00:00 để so sánh chính xác
-      const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
-      const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+      date.setDate(today.getDate() - i);
+      date.setHours(0, 0, 0, 0);
 
-      // Đếm số training logs trong ngày này
-      const logsInDay = trainingLogs.filter(log => {
+      const startOfDay = new Date(date);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const logsInDay = trainingLogs.filter((log) => {
         const logDate = new Date(log.date);
         return logDate >= startOfDay && logDate <= endOfDay;
       });
 
-      // Lưu số lượng vào mảng (index 0 = 6 ngày trước, index 6 = hôm nay)
-      data[6 - i] = logsInDay.length;
+      labels.push(formatLabel(date));
+      dataset.push(logsInDay.length);
     }
 
     return {
-      labels: dayNames,
+      labels,
       datasets: [
         {
-          data: data,
+          data: dataset,
           color: () => "#92A3FD",
           strokeWidth: 2,
         },

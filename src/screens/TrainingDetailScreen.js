@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useEvent } from "expo";
+import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useState } from "react";
 import {
@@ -13,7 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { trainingLogAPI, workoutAPI, scheduleAPI } from "../services/api";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { scheduleAPI, trainingLogAPI, workoutAPI } from "../services/api";
 import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
 
 export default function TrainingDetailScreen({ route, navigation }) {
@@ -110,7 +111,7 @@ export default function TrainingDetailScreen({ route, navigation }) {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={["#E3F0FF", "#D4E4FF"]}
         start={{ x: 0, y: 0 }}
@@ -243,7 +244,7 @@ export default function TrainingDetailScreen({ route, navigation }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

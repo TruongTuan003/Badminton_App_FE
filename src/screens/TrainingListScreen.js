@@ -14,10 +14,11 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { TabBar, TabView } from "react-native-tab-view";
 import { Calendar } from "react-native-calendars";
-import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { TabBar, TabView } from "react-native-tab-view";
 import { scheduleAPI, workoutAPI } from "../services/api";
+import { COLORS, FONTS, SHADOWS } from "../styles/commonStyles";
 
 const { width } = Dimensions.get("window");
 
@@ -269,7 +270,7 @@ export default function TrainingListScreen({ route, navigation }) {
     );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header with Gradient */}
       <LinearGradient
         colors={["#9DCEFF", "#92A3FD"]}
@@ -389,7 +390,7 @@ export default function TrainingListScreen({ route, navigation }) {
           </View>
         </Modal>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

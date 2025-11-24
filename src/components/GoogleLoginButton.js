@@ -5,9 +5,14 @@ import * as WebBrowser from "expo-web-browser";
 import React, { useEffect } from "react";
 import { Alert, StyleSheet, TouchableOpacity } from "react-native";
 
+WebBrowser.maybeCompleteAuthSession();
+
 export default function GoogleLoginButton({ onLoginSuccess }) {
   useEffect(() => {
-    console.log("👉 Redirect URI:", AuthSession.makeRedirectUri({ useProxy: true }));
+    console.log(
+      "👉 Redirect URI:",
+      AuthSession.makeRedirectUri({ useProxy: true })
+    );
   }, []);
 
   const handleLogin = async () => {

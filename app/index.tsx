@@ -1,8 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createStackNavigator } from '@react-navigation/stack';
-import * as Linking from 'expo-linking';
-import React, { useEffect } from 'react';
-import { Alert } from 'react-native';
+import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ActivityHistoryScreen from '../src/screens/ActivityHistoryScreen';
 import AuthScreen from '../src/screens/AuthScreen';
@@ -33,62 +30,10 @@ import WorkoutScreen from '../src/screens/WorkoutScreen';
 const Stack = createStackNavigator();
 
 export default function App() {
-  // ==================== THÊM ĐOẠN NÀY VÀO ĐÂY ====================
-  const navigationRef = React.useRef<any>(null);
-  useEffect(() => {
-    const handleDeepLink = async ({ url }: { url: string }) => {
-      if (!url) return;
-
-      console.log('Deep link nhận được:', url); // để debug trong Expo Go hoặc console
-
-      try {
-        const { queryParams } = Linking.parse(url);
-
-        if (queryParams?.token) {
-          const token = queryParams.token as string;
-
-          // Lưu token ngay lập tức
-          await AsyncStorage.setItem('authToken', token);
-          await AsyncStorage.setItem('isLoggedIn', 'true');
-
-          Alert.alert('Đăng nhập thành công!', 'Chào mừng bạn trở lại 🎉', [
-            { text: 'OK', onPress: () => {
-              navigationRef.current?.navigate('Home');
-            } }
-          ]);
-
-          // Tự động chuyển về Home (nếu đang ở Auth hoặc Onboarding)
-          // Stack.Navigator sẽ tự handle vì token đã có
-        }
-
-        if (queryParams?.error) {
-          Alert.alert('Lỗi đăng nhập', queryParams.error as string);
-        }
-      } catch (err) {
-        console.error('Lỗi xử lý deep link:', err);
-      }
-    };
-
-    // Khi app đang mở và nhận link
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-
-    // Khi app bị đóng hoàn toàn và được mở bởi deep link
-    Linking.getInitialURL().then((url) => {
-      if (url) handleDeepLink({ url });
-    });
-
-    // Cleanup
-    return () => subscription?.remove();
-  }, []);
-  // ============================================================ 
+ 
   return (
     <SafeAreaProvider>
-    <Stack.Navigator 
-        screenOptions={{ headerShown: false }}
-        // Thêm dòng này để lấy được navigation từ bên ngoài
-        // @ts-ignore
-        ref={navigationRef}
-      >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Auth" component={AuthScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />

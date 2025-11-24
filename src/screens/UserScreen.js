@@ -1,9 +1,11 @@
 import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
+import { Bot } from "lucide-react-native";
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { userAPI } from '../services/api';
 import { calculateBMI } from '../utils/bmiCalculator';
+import ChatBotAI from "../components/ChatBotAI";
 
 // Hàm để lấy màu dựa trên chỉ số BMI
 function getBmiColor(bmiValue) {
@@ -25,6 +27,8 @@ function getBmiPercentage(bmiValue) {
 export default function UserScreen({ navigation, route }) {
   // Lấy thông tin người dùng từ API
   const [userData, setUserData] = React.useState(null);
+  const [isChatBotOpen, setIsChatBotOpen] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState("home");
 
   // Tạo hàm fetchUserData để có thể gọi lại khi cần
   React.useEffect(() => {
@@ -266,21 +270,69 @@ export default function UserScreen({ navigation, route }) {
       </ScrollView>
       
       {/* Bottom Navigation */}
+      <ChatBotAI isOpen={isChatBotOpen} onToggle={setIsChatBotOpen} />
       <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
-          <Ionicons name="home-outline" size={24} color="#ADA4A5" />
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => setActiveTab("home")}
+        >
+          <Ionicons
+            name="home"
+            size={24}
+            color={activeTab === "home" ? "#92A3FD" : "#ADA4A5"}
+          />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Workout')}>
-          <Feather name="activity" size={24} color="#ADA4A5" />
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => {
+            setActiveTab("workout");
+            navigation.navigate("Workout");
+          }}
+        >
+          <Feather
+            name="activity"
+            size={24}
+            color={activeTab === "workout" ? "#92A3FD" : "#ADA4A5"}
+          />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navButton}>
-          <Feather name="search" size={24} color="#FFFFFF" />
+        <TouchableOpacity 
+          style={[styles.navButton, isChatBotOpen ? {} : styles.navButtonRobot]}
+          onPress={() => setIsChatBotOpen(!isChatBotOpen)}
+        >
+          {isChatBotOpen ? (
+            <Feather 
+              name="x" 
+              size={24} 
+              color="#FFFFFF" 
+            />
+          ) : (
+            <Bot 
+              size={24} 
+              color="#92A3FD" 
+            />
+          )}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Food')}>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => {
+            setActiveTab("food");
+            navigation.navigate("Food");
+          }}
+        >
           <MaterialCommunityIcons name="food" size={24} color="#ADA4A5" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="person" size={24} color="#C58BF2" />
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => {
+            setActiveTab("user");
+            navigation.navigate("User", userData);
+          }}
+        >
+          <Feather
+            name="user"
+            size={24}
+            color={activeTab === "user" ? "#92A3FD" : "#ADA4A5"}
+          />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -564,4 +616,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#7B6F72',
   },
+  navButtonRobot: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+    borderColor: "#92A3FD",
+  }
 });

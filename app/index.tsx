@@ -30,6 +30,7 @@ import WorkoutScreen from '../src/screens/WorkoutScreen';
 const Stack = createStackNavigator();
 
 export default function App() {
+ 
   return (
     <SafeAreaProvider>
     <Stack.Navigator screenOptions={{ headerShown: false }}>

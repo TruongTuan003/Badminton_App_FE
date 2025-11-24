@@ -28,7 +28,7 @@ export default function UserScreen({ navigation, route }) {
   // Lấy thông tin người dùng từ API
   const [userData, setUserData] = React.useState(null);
   const [isChatBotOpen, setIsChatBotOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("home");
+  const [activeTab, setActiveTab] = React.useState("User");
 
   // Tạo hàm fetchUserData để có thể gọi lại khi cần
   React.useEffect(() => {
@@ -274,7 +274,10 @@ export default function UserScreen({ navigation, route }) {
       <View style={styles.bottomNav}>
         <TouchableOpacity
           style={styles.navItem}
-          onPress={() => setActiveTab("home")}
+          onPress={() => {
+            setActiveTab("home");
+            navigation.navigate("Home", userData);
+          }}
         >
           <Ionicons
             name="home"
@@ -323,10 +326,7 @@ export default function UserScreen({ navigation, route }) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.navItem}
-          onPress={() => {
-            setActiveTab("user");
-            navigation.navigate("User", userData);
-          }}
+          onPress={() => setActiveTab("user")}
         >
           <Feather
             name="user"

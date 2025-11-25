@@ -3,6 +3,7 @@ import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ActivityHistoryScreen from '../src/screens/ActivityHistoryScreen';
 import AuthScreen from '../src/screens/AuthScreen';
+import BadmintonSurveyScreen from '../src/screens/BadmintonSurveyScreen';
 import EditProfileScreen from '../src/screens/EditProfileScreen';
 import ExerciseDetailScreen from '../src/screens/ExerciseDetailScreen';
 import FoodScreen from '../src/screens/FoodScreen';
@@ -42,6 +43,7 @@ export default function App() {
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="GoalSelection" component={GoalSelectionScreen} />
+      <Stack.Screen name="BadmintonSurvey" component={BadmintonSurveyScreen} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="User" component={UserScreen} />

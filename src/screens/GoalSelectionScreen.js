@@ -79,7 +79,16 @@ export default function GoalSelectionScreen({ navigation, route }) {
         
         console.log('Complete Profile Data:', completeData);
         
-        navigation.navigate('Auth', { userData: completeData });
+        // Kiểm tra nếu người dùng chọn mục tiêu "Nâng cao kỹ năng cầu lông" (id: 1)
+        const hasBadmintonGoal = selectedGoals.some(goal => goal.id === 1);
+        
+        if (hasBadmintonGoal) {
+          // Chuyển đến màn hình khảo sát
+          navigation.navigate('BadmintonSurvey', { profileData: completeData });
+        } else {
+          // Chuyển thẳng đến màn hình Auth
+          navigation.navigate('Auth', { userData: completeData });
+        }
       } catch (error) {
         console.error('Update goals error:', error.response?.data || error.message);
         Alert.alert(

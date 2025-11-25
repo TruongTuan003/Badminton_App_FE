@@ -3,6 +3,8 @@ import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ActivityHistoryScreen from '../src/screens/ActivityHistoryScreen';
 import AuthScreen from '../src/screens/AuthScreen';
+import BadmintonKnowledgeScreen from '../src/screens/BadmintonKnowledgeScreen';
+import BadmintonKnowledgeDetailScreen from '../src/screens/BadmintonKnowledgeDetailScreen';
 import BadmintonSurveyScreen from '../src/screens/BadmintonSurveyScreen';
 import EditProfileScreen from '../src/screens/EditProfileScreen';
 import ExerciseDetailScreen from '../src/screens/ExerciseDetailScreen';
@@ -60,6 +62,8 @@ export default function App() {
       <Stack.Screen name="TrainingPlanDetail" component={TrainingPlanDetailScreen} />
       <Stack.Screen name="MealPlanSelect" component={MealPlanSelectScreen} />
       <Stack.Screen name="ActivityHistory" component={ActivityHistoryScreen} options={{ title: 'Lịch sử hoạt động', headerShown: false }} />
+      <Stack.Screen name="BadmintonKnowledge" component={BadmintonKnowledgeScreen} options={{ title: 'Kiến thức cầu lông', headerShown: false }} />
+      <Stack.Screen name="BadmintonKnowledgeDetail" component={BadmintonKnowledgeDetailScreen} options={{ title: 'Kiến thức chi tiết', headerShown: false }} />
     </Stack.Navigator>
     </SafeAreaProvider>
   );

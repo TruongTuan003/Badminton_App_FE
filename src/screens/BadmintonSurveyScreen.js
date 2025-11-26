@@ -101,6 +101,14 @@ export default function BadmintonSurveyScreen({ navigation, route }) {
         await AsyncStorage.setItem('token', response.data.token);
       }
       
+      // Xóa activeTrainingPlan để đảm bảo không có plan nào được gán sẵn cho người dùng mới
+      try {
+        await AsyncStorage.removeItem('activeTrainingPlan');
+        console.log('✅ Cleared activeTrainingPlan for new user');
+      } catch (error) {
+        console.error('Error clearing activeTrainingPlan:', error);
+      }
+      
       const completeData = {
         ...profileData,
         ...response.data.user,

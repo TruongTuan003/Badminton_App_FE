@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Bot } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -15,7 +16,7 @@ import {
 import { LineChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ChatBotAI from "../components/ChatBotAI";
-import { mealScheduleAPI, scheduleAPI, trainingLogAPI, userAPI } from "../services/api";
+import { mealScheduleAPI, scheduleAPI, trainingLogAPI, trainingPlanAPI, userAPI } from "../services/api";
 import { FONTS } from "../styles/commonStyles";
 import { calculateBMI } from "../utils/bmiCalculator";
 
@@ -34,6 +35,15 @@ export default function HomeScreen({ navigation, route }) {
     calories: 0,
     mealType: "",
   });
+  const [recommendedPlans, setRecommendedPlans] = React.useState([]);
+  const [loadingRecommendation, setLoadingRecommendation] = React.useState(false);
+  const [activeTrainingPlan, setActiveTrainingPlan] = React.useState(null);
+  const [activePlanProgress, setActivePlanProgress] = React.useState({
+    completed: 0,
+    total: 0,
+  });
+  const [planProgressLoading, setPlanProgressLoading] = React.useState(false);
+  const calculatingProgressRef = React.useRef(false);
   const todayStr = (() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -141,11 +151,370 @@ export default function HomeScreen({ navigation, route }) {
     }
   }, []);
 
+  const loadActivePlan = React.useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem("activeTrainingPlan");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setActiveTrainingPlan(parsed);
+        return parsed;
+      } else {
+        setActiveTrainingPlan(null);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error loading active training plan:", error);
+      setActiveTrainingPlan(null);
+      return null;
+    }
+  }, []);
+
+  // Fetch recommended training plans dựa trên survey data
+  const fetchRecommendedPlan = React.useCallback(async () => {
+    if (!userData) return;
+    
+    try {
+      setLoadingRecommendation(true);
+  const { badmintonLevel, goal } = userData;
+      const userGoals = (Array.isArray(goal) ? goal : [goal]).filter(Boolean);
+      
+      // Chỉ fetch nếu có dữ liệu khảo sát
+      if (!badmintonLevel || userGoals.length === 0) {
+        setRecommendedPlans([]);
+        return;
+      }
+      
+      const normalizeText = (value) =>
+        typeof value === "string" ? value.toLowerCase().trim() : "";
+
+      const normalizeLevel = (value) => {
+        const mapping = {
+          beginner: ["beginner", "mới bắt đầu", "newbie", "basic", "cơ bản"],
+          intermediate: ["intermediate", "trung bình", "average", "medium"],
+          advanced: ["advanced", "nâng cao", "pro", "chuyên nghiệp"],
+        };
+        const normalized = normalizeText(value);
+        for (const [key, aliases] of Object.entries(mapping)) {
+          if (aliases.includes(normalized)) {
+            return key;
+          }
+        }
+        return normalized || "";
+      };
+      
+      const normalizedLevel = normalizeLevel(badmintonLevel);
+      if (!normalizedLevel) {
+        setRecommendedPlans([]);
+        return;
+      }
+      const normalizedUserGoals = userGoals
+        .map((g) => {
+          if (typeof g === "string") return normalizeText(g);
+          if (g?.title) return normalizeText(g.title);
+          return "";
+        })
+        .filter(Boolean);
+      
+      const matchesLevel = (planLevel) =>
+        normalizeLevel(planLevel) === normalizedLevel;
+      
+      const matchesGoal = (planGoal) => {
+        const planGoals = Array.isArray(planGoal)
+          ? planGoal
+          : planGoal
+          ? [planGoal]
+          : [];
+        const normalizedPlanGoals = planGoals
+          .map((g) => {
+            if (typeof g === "string") return normalizeText(g);
+            if (g?.title) return normalizeText(g.title);
+            return "";
+          })
+          .filter(Boolean);
+
+        if (normalizedPlanGoals.length === 0 || normalizedUserGoals.length === 0) {
+          return false;
+        }
+
+        return normalizedPlanGoals.some((planGoal) =>
+          normalizedUserGoals.includes(planGoal)
+        );
+      };
+
+      // Sử dụng Map để tránh trùng lặp kế hoạch
+      const planMap = new Map();
+      const addPlansToMap = (planList) => {
+        (planList || []).forEach((plan) => {
+          if (plan?._id && !planMap.has(plan._id)) {
+            planMap.set(plan._id, plan);
+          }
+        });
+      };
+
+      // Lấy training plans theo level
+      try {
+        const levelResponse = await trainingPlanAPI.getByLevel(badmintonLevel);
+        addPlansToMap(levelResponse.data);
+      } catch (error) {
+        console.error("Error fetching plans by level:", error);
+      }
+      
+      // Lấy thêm plans theo goal để có nhiều lựa chọn
+      if (userGoals.length > 0) {
+        try {
+          for (const g of userGoals) {
+            const goalResponse = await trainingPlanAPI.getByGoal(g);
+            addPlansToMap(goalResponse.data);
+          }
+        } catch (error) {
+
+        }
+      }
+
+      const allPlans = Array.from(planMap.values());
+      const levelMatchedPlans = allPlans.filter((plan) =>
+        matchesLevel(plan.level)
+      );
+      const levelAndGoalMatchedPlans = levelMatchedPlans.filter((plan) =>
+        matchesGoal(plan.goal)
+      );
+
+      const rejectDailyPlans = (plans) =>
+        plans.filter(
+          (plan) =>
+            typeof plan.type !== "string" ||
+            !["daily", "hàng ngày", "hang ngay"].includes(normalizeText(plan.type))
+        );
+
+      let finalPlans = [];
+      if (levelAndGoalMatchedPlans.length > 0) {
+        finalPlans = rejectDailyPlans(levelAndGoalMatchedPlans);
+      }
+      if (finalPlans.length === 0 && levelMatchedPlans.length > 0) {
+        finalPlans = rejectDailyPlans(levelMatchedPlans);
+      }
+
+      if (
+        activeTrainingPlan?.planId &&
+        !finalPlans.some((plan) => plan._id === activeTrainingPlan.planId)
+      ) {
+        try {
+          const planDetail = await trainingPlanAPI.getById(
+            activeTrainingPlan.planId
+          );
+          if (planDetail?.data) {
+            finalPlans = [planDetail.data, ...finalPlans];
+          }
+        } catch (error) {
+          console.error("Error fetching active plan detail:", error);
+        }
+      }
+
+      const slicedPlans = finalPlans.slice(0, 10);
+      if (activeTrainingPlan?.planId) {
+        try {
+          const currentIndex = slicedPlans.findIndex(
+            (plan) => plan._id === activeTrainingPlan.planId
+          );
+          if (currentIndex > 0) {
+            const [activePlan] = slicedPlans.splice(currentIndex, 1);
+            slicedPlans.unshift(activePlan);
+          } else if (currentIndex === -1) {
+            const planDetail = await trainingPlanAPI.getById(
+              activeTrainingPlan.planId
+            );
+            if (planDetail?.data) {
+              slicedPlans.unshift(planDetail.data);
+            }
+          }
+        } catch (error) {
+          console.error("Error ensuring active plan in recommendations:", error);
+        }
+      }
+
+      setRecommendedPlans(slicedPlans);
+    } catch (error) {
+      console.error("Error fetching recommended plans:", error);
+      setRecommendedPlans([]);
+    } finally {
+      setLoadingRecommendation(false);
+    }
+  }, [userData, activeTrainingPlan?.planId]);
+
+  const calculatePlanProgress = React.useCallback(async (planData = null) => {
+    // Tránh gọi nhiều lần đồng thời
+    if (calculatingProgressRef.current) {
+      console.log("⏸️ Progress calculation already in progress, skipping...");
+      return;
+    }
+
+    const plan = planData || activeTrainingPlan;
+    
+    if (!plan || !plan.workoutMap) {
+      setActivePlanProgress({
+        completed: 0,
+        total: plan?.totalWorkouts || 0,
+      });
+      return;
+    }
+
+    calculatingProgressRef.current = true;
+    console.log("📊 Calculating plan progress for:", plan.planId);
+    console.log("📋 Workout map entries:", plan.workoutMap.length);
+
+    const normalizeId = (id) => {
+      if (!id) return "";
+      if (typeof id === "string") return id.trim();
+      if (id?._id) return id._id.toString().trim();
+      return id.toString().trim();
+    };
+
+    const normalizedWorkoutMap = plan.workoutMap.map((entry) => ({
+      date: entry.date,
+      workoutIds: (entry.workoutIds || []).map(normalizeId).filter(Boolean),
+    }));
+
+    const totalPlanned =
+      plan.totalWorkouts ||
+      normalizedWorkoutMap.reduce(
+        (sum, entry) => sum + entry.workoutIds.length,
+        0
+      );
+
+    console.log("📈 Total planned workouts:", totalPlanned);
+
+    if (totalPlanned === 0) {
+      setActivePlanProgress({ completed: 0, total: 0 });
+      calculatingProgressRef.current = false;
+      return;
+    }
+
+    setPlanProgressLoading(true);
+    try {
+      // Tạo một Set để lưu các cặp (date, workoutId) đã hoàn thành
+      const completedWorkouts = new Set();
+      
+      // Fetch schedule details cho tất cả các ngày trong workoutMap
+      const scheduleDetailsList = await Promise.all(
+        normalizedWorkoutMap.map(async (entry) => {
+          if (!entry?.date || !entry?.workoutIds?.length) {
+            return { date: entry?.date || "", details: [] };
+          }
+          try {
+            const res = await scheduleAPI.getByDate(entry.date);
+            const details = res.data?.details || [];
+            console.log(`📅 Date ${entry.date}: ${details.length} schedule details`);
+            // Log chi tiết để debug
+            if (details.length > 0) {
+              details.forEach((d, idx) => {
+                console.log(`  Detail[${idx}]: workoutId=${JSON.stringify(d.workoutId)}, status=${d.status}`);
+              });
+            }
+            return { date: entry.date, details };
+          } catch (error) {
+            if (error.response?.status === 404) {
+              return { date: entry.date, details: [] };
+            }
+            console.error(`Error fetching schedule for ${entry.date}:`, error);
+            return { date: entry.date, details: [] };
+          }
+        })
+      );
+
+      // Tạo map để dễ tra cứu
+      const detailMap = scheduleDetailsList.reduce((acc, item) => {
+        acc[item.date] = item.details;
+        return acc;
+      }, {});
+
+      // Đếm số workout đã hoàn thành
+      // Có 2 cách: 
+      // 1. Đếm các workout có trong workoutMap và status = "done" (chính xác hơn nhưng có thể bỏ sót nếu schedule thay đổi)
+      // 2. Đếm tất cả workout có status = "done" trong các ngày của kế hoạch (bao quát hơn nhưng có thể đếm cả workout từ kế hoạch khác)
+      // Tôi sẽ dùng cách 1 nhưng cải thiện để xử lý trường hợp workoutIds không khớp
+      
+      normalizedWorkoutMap.forEach((entry) => {
+        if (!entry?.date) return;
+        
+        const details = detailMap[entry.date] || [];
+        console.log(`🔍 Checking date ${entry.date}:`);
+        console.log(`  📋 Planned workoutIds: [${entry.workoutIds.join(", ")}]`);
+        console.log(`  📅 Found ${details.length} schedule details`);
+        
+        // Cách 1: Đếm các workout có trong workoutMap và status = "done"
+        entry.workoutIds.forEach((plannedWorkoutId) => {
+          const matchedDetail = details.find((detail) => {
+            const detailWorkoutId = normalizeId(detail.workoutId);
+            return detailWorkoutId === plannedWorkoutId;
+          });
+          
+          if (matchedDetail && matchedDetail.status === "done") {
+            const key = `${entry.date}-${plannedWorkoutId}`;
+            if (!completedWorkouts.has(key)) {
+              completedWorkouts.add(key);
+              console.log(`    ✅ COUNTED (planned): ${plannedWorkoutId} on ${entry.date}`);
+            }
+          }
+        });
+        
+        // Cách 2: Nếu không tìm thấy workout nào khớp với planned, đếm tất cả workout done trong ngày đó
+        // (để xử lý trường hợp schedule đã thay đổi)
+        const foundPlannedWorkouts = entry.workoutIds.some((plannedWorkoutId) => {
+          return details.some((detail) => {
+            const detailWorkoutId = normalizeId(detail.workoutId);
+            return detailWorkoutId === plannedWorkoutId;
+          });
+        });
+        
+        if (!foundPlannedWorkouts && entry.workoutIds.length > 0) {
+          // Không tìm thấy workout nào trong planned, có thể schedule đã thay đổi
+          // Đếm tất cả workout done trong ngày này
+          details.forEach((detail) => {
+            const detailWorkoutId = normalizeId(detail.workoutId);
+            if (detail.status === "done") {
+              const key = `${entry.date}-${detailWorkoutId}`;
+              if (!completedWorkouts.has(key)) {
+                completedWorkouts.add(key);
+                console.log(`    ✅ COUNTED (fallback): ${detailWorkoutId} on ${entry.date} (schedule changed)`);
+              }
+            }
+          });
+        }
+      });
+
+      const completed = completedWorkouts.size;
+      console.log(`🎯 Progress: ${completed}/${totalPlanned} completed`);
+
+      setActivePlanProgress({
+        completed,
+        total: totalPlanned,
+      });
+    } catch (error) {
+      console.error("❌ Error calculating plan progress:", error);
+      setActivePlanProgress({
+        completed: 0,
+        total: totalPlanned,
+      });
+    } finally {
+      setPlanProgressLoading(false);
+      calculatingProgressRef.current = false;
+    }
+  }, [activeTrainingPlan]);
+
+
   React.useEffect(() => {
     fetchTodayMeals();
     fetchTodaySchedule();
     fetchTrainingLogs();
   }, [fetchTodayMeals, fetchTodaySchedule, fetchTrainingLogs]);
+
+  React.useEffect(() => {
+    loadActivePlan();
+  }, [loadActivePlan]);
+
+  React.useEffect(() => {
+    fetchRecommendedPlan();
+  }, [fetchRecommendedPlan]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -153,9 +522,32 @@ export default function HomeScreen({ navigation, route }) {
       fetchTodayMeals();
       fetchTodaySchedule();
       fetchTrainingLogs();
+      loadActivePlan();
       return undefined;
-    }, [fetchTodayMeals, fetchTodaySchedule, fetchTrainingLogs])
+    }, [
+      fetchTodayMeals,
+      fetchTodaySchedule,
+      fetchTrainingLogs,
+      loadActivePlan,
+    ])
   );
+
+  // Tính lại tiến độ khi activeTrainingPlan thay đổi (bao gồm khi load từ AsyncStorage)
+  React.useEffect(() => {
+    if (activeTrainingPlan) {
+      // Chờ một chút để đảm bảo các API call khác đã hoàn thành
+      const timer = setTimeout(() => {
+        if (!calculatingProgressRef.current) {
+          calculatePlanProgress(activeTrainingPlan);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setActivePlanProgress({ completed: 0, total: 0 });
+      setPlanProgressLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTrainingPlan]);
 
   // Lấy chiều cao và cân nặng từ userData hoặc sử dụng giá trị mặc định
   const fullName = userData?.name || "Người dùng";
@@ -243,6 +635,29 @@ export default function HomeScreen({ navigation, route }) {
 
   const workoutData = getWorkoutData();
 
+  const getLevelLabel = (level) => {
+    const normalized = typeof level === "string" ? level.toLowerCase().trim() : "";
+    const levelMap = {
+      beginner: "Mới bắt đầu",
+      intermediate: "Trung bình",
+      advanced: "Nâng cao",
+      basic: "Cơ bản",
+      pro: "Chuyên nghiệp",
+    };
+    return levelMap[normalized] || (level?.toString() ?? "Không rõ cấp độ");
+  };
+
+  const getTypeLabel = (type) => {
+    const normalized = typeof type === "string" ? type.toLowerCase().trim() : "";
+    const typeMap = {
+      daily: "Hàng ngày",
+      weekly: "Hàng tuần",
+      monthly: "Hàng tháng",
+      custom: "Tùy chỉnh",
+    };
+    return typeMap[normalized] || (type?.toString() ?? "Không rõ loại");
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -287,6 +702,174 @@ export default function HomeScreen({ navigation, route }) {
             </View>
           </View>
         </LinearGradient>
+
+        {/* Recommended Plan Card - Dành cho bạn */}
+        {recommendedPlans.length > 0 && (
+          <View style={styles.recommendedSection}>
+            <View style={styles.recommendedHeader}>
+              <View style={styles.recommendedTitleContainer}>
+                <View style={styles.recommendedTitleIcon}>
+                  <Feather name="star" size={20} color="#3B82F6" />
+                </View>
+                <Text style={styles.recommendedTitle}>Dành cho bạn</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.viewAllButton}
+                onPress={() => navigation.navigate("TrainingPlanList")}
+              >
+                <Text style={styles.viewAllText}>Xem tất cả</Text>
+                <Feather name="chevron-right" size={14} color="#3B82F6" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recommendedScrollContent}
+              style={styles.recommendedScrollView}
+            >
+              {recommendedPlans.map((plan) => {
+                const isActivePlan = activeTrainingPlan?.planId === plan._id;
+                const totalProgress = activePlanProgress.total || activeTrainingPlan?.totalWorkouts || 0;
+                const completedProgress = isActivePlan ? activePlanProgress.completed : 0;
+                const progressPercent =
+                  isActivePlan && totalProgress > 0
+                    ? Math.round((completedProgress / totalProgress) * 100)
+                    : 0;
+
+                return (
+                  <LinearGradient
+                    key={plan._id}
+                    colors={
+                      isActivePlan
+                        ? ["#E8FBF0", "#D1FAE5"]
+                        : ["#F0F9FF", "#E0F2FE"]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[
+                      styles.recommendedCard,
+                      isActivePlan && styles.activeRecommendedCard,
+                    ]}
+                  >
+                    <View style={styles.recommendedCardContent}>
+                      <View style={styles.recommendedTitleRow}>
+                        <LinearGradient
+                          colors={["#3B82F6", "#60A5FA"]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.recommendedIconContainer}
+                        >
+                          <Feather name="target" size={18} color="#FFFFFF" />
+                        </LinearGradient>
+                        <Text style={styles.recommendedPlanName} numberOfLines={2}>
+                          {plan.name || "Kế hoạch tập luyện"}
+                        </Text>
+                      </View>
+
+                      {isActivePlan && (
+                        <View style={styles.activePlanTag}>
+                          <Feather name="check-circle" size={14} color="#22C55E" />
+                          <Text style={styles.activePlanTagText}>Đang theo dõi</Text>
+                        </View>
+                      )}
+
+                      <Text style={styles.recommendedPlanDescription} numberOfLines={3}>
+                        {plan.description || "Phù hợp với trình độ và mục tiêu của bạn"}
+                      </Text>
+
+                      <View style={styles.recommendedBadges}>
+                        {plan.level && (
+                          <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{getLevelLabel(plan.level)}</Text>
+                          </View>
+                        )}
+                        {plan.type && (
+                          <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{getTypeLabel(plan.type)}</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {isActivePlan && (
+                        <View style={styles.planProgressWrapper}>
+                          <View style={styles.planProgressHeader}>
+                            <Text style={styles.planProgressLabel}>
+                              {planProgressLoading ? "Đang cập nhật..." : "Tiến độ"}
+                            </Text>
+                            <Text style={styles.planProgressValue}>
+                              {planProgressLoading
+                                ? "--"
+                                : `${completedProgress}/${totalProgress}`}
+                            </Text>
+                          </View>
+                          <View style={styles.planProgressBar}>
+                            <View style={styles.planProgressGlow} />
+                            <LinearGradient
+                              colors={["#34D399", "#16A34A", "#15803D"]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                              style={[
+                                styles.planProgressFill,
+                                {
+                                  width: planProgressLoading
+                                    ? "15%"
+                                    : `${Math.min(progressPercent, 100)}%`,
+                                },
+                              ]}
+                            >
+                              <Feather
+                                name="zap"
+                                size={12}
+                                color="#FFFFFF"
+                                style={styles.planProgressZap}
+                              />
+                            </LinearGradient>
+                          </View>
+                          {!planProgressLoading && (
+                            <Text style={styles.planProgressPercent}>
+                              {progressPercent}% hoàn thành
+                            </Text>
+                          )}
+                        </View>
+                      )}
+
+                      <TouchableOpacity
+                        style={styles.recommendedCardButton}
+                        onPress={() =>
+                          navigation.navigate("TrainingPlanDetail", {
+                            plan,
+                          })
+                        }
+                      >
+                        <LinearGradient
+                          colors={
+                            isActivePlan
+                              ? ["#16A34A", "#22C55E"]
+                              : ["#3B82F6", "#60A5FA"]
+                          }
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.recommendedCardButtonGradient}
+                        >
+                          <Text style={styles.recommendedCardButtonText}>
+                            {isActivePlan ? "Tiếp tục kế hoạch" : "Xem chi tiết"}
+                          </Text>
+                          <Feather
+                            name="arrow-right"
+                            size={16}
+                            color="#FFFFFF"
+                            style={{ marginLeft: 6 }}
+                          />
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+                  </LinearGradient>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Schedule Card */}
         <LinearGradient
@@ -800,6 +1383,192 @@ const styles = StyleSheet.create({
   bmiValueText: {
     color: "#FFFFFF",
     fontSize: 18,
+    fontWeight: "bold",
+  },
+
+  // Recommended Plan Section
+  recommendedSection: {
+    marginBottom: 20,
+  },
+  recommendedHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingHorizontal: 0,
+  },
+  recommendedTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  recommendedTitleIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(59, 130, 246, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  recommendedTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1D1617",
+  },
+  recommendedScrollView: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+  },
+  recommendedScrollContent: {
+    paddingRight: 20,
+    gap: 16,
+  },
+  recommendedCard: {
+    width: SCREEN_W * 0.85,
+    borderRadius: 20,
+    padding: 16,
+    marginRight: 16,
+    shadowColor: "#3B82F6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.2)",
+  },
+  activeRecommendedCard: {
+    borderColor: "rgba(34, 197, 94, 0.4)",
+    shadowColor: "#22C55E",
+  },
+  recommendedCardContent: {
+    gap: 10,
+  },
+  recommendedTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  recommendedIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  recommendedPlanName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1D1617",
+    marginBottom: 4,
+  },
+  recommendedPlanDescription: {
+    fontSize: 13,
+    color: "#7B6F72",
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  activePlanTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 6,
+  },
+  activePlanTagText: {
+    color: "#16A34A",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  recommendedBadges: {
+    flexDirection: "row",
+    gap: 6,
+    flexWrap: "wrap",
+    marginBottom: 12,
+  },
+  badge: {
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  badgeText: {
+    fontSize: 11,
+    color: "#3B82F6",
+    fontWeight: "600",
+  },
+  planProgressWrapper: {
+    marginBottom: 10,
+    gap: 6,
+    backgroundColor: "rgba(22, 163, 74, 0.08)",
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.3)",
+  },
+  planProgressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  planProgressLabel: {
+    fontSize: 12,
+    color: "#7B6F72",
+  },
+  planProgressValue: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1D1617",
+  },
+  planProgressBar: {
+    height: 14,
+    borderRadius: 10,
+    backgroundColor: "rgba(22, 163, 74, 0.2)",
+    overflow: "hidden",
+    position: "relative",
+  },
+  planProgressGlow: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    height: "100%",
+    width: "100%",
+    backgroundColor: "rgba(16, 185, 129, 0.2)",
+    borderRadius: 10,
+  },
+  planProgressFill: {
+    height: "100%",
+    borderRadius: 10,
+    justifyContent: "center",
+  },
+  planProgressZap: {
+    position: "absolute",
+    right: 4,
+    top: "50%",
+    marginTop: -6,
+  },
+  planProgressPercent: {
+    fontSize: 12,
+    color: "#16A34A",
+    fontWeight: "600",
+  },
+  recommendedCardButton: {
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  recommendedCardButtonGradient: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recommendedCardButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
     fontWeight: "bold",
   },
 

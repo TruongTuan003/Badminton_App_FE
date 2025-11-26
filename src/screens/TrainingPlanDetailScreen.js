@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
@@ -18,6 +19,73 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
   const [applying, setApplying] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+
+  const parseLocalDate = (dateStr) => {
+    if (!dateStr || !dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return new Date(dateStr);
+    }
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  };
+
+  const buildWorkoutMap = () => {
+    if (!plan?.planDays || plan.planDays.length === 0) return [];
+
+    const result = [];
+    const startDateObj = parseLocalDate(selectedDate);
+    const startDayOfWeek = startDateObj.getDay();
+
+    const normalizeWorkoutId = (workout) => {
+      if (!workout) return null;
+      if (typeof workout.trainingId === "object" && workout.trainingId?._id) {
+        return workout.trainingId._id;
+      }
+      return workout.trainingId || null;
+    };
+
+    const addEntry = (dateObj, workouts) => {
+      if (!workouts || workouts.length === 0) return;
+      const workoutIds = workouts
+        .map((workout) => normalizeWorkoutId(workout))
+        .filter(Boolean);
+
+      if (workoutIds.length === 0) return;
+
+      const dateCopy = new Date(dateObj);
+      dateCopy.setHours(0, 0, 0, 0);
+      result.push({
+        date: dateCopy.toISOString().split("T")[0],
+        workoutIds,
+      });
+    };
+
+    if (plan.type === "daily") {
+      const planDay = plan.planDays.find((pd) => pd.day === 1 || pd.day === 0);
+      if (planDay) addEntry(startDateObj, planDay.workouts);
+    } else if (plan.type === "weekly") {
+      plan.planDays.forEach((planDay) => {
+        if (planDay.day === undefined || planDay.day === null) return;
+        let daysToAdd = planDay.day - startDayOfWeek;
+        if (daysToAdd < 0) {
+          daysToAdd += 7;
+        }
+        const targetDate = new Date(startDateObj);
+        targetDate.setDate(startDateObj.getDate() + daysToAdd);
+        addEntry(targetDate, planDay.workouts);
+      });
+    } else if (plan.type === "monthly") {
+      plan.planDays.forEach((planDay) => {
+        if (!planDay.day) return;
+        const targetDate = new Date(startDateObj);
+        targetDate.setDate(startDateObj.getDate() + (planDay.day - 1));
+        addEntry(targetDate, planDay.workouts);
+      });
+    }
+
+    return result;
+  };
 
   const getTypeLabel = (type) => {
     const typeMap = {
@@ -143,6 +211,32 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
       const response = await trainingPlanAPI.applyPlan(plan._id, selectedDate, replaceExisting);
       
       console.log("✅ Apply response:", response.data);
+
+      const workoutMap = buildWorkoutMap();
+      const totalPlanWorkouts =
+        workoutMap.reduce((sum, entry) => sum + entry.workoutIds.length, 0) || 0;
+
+      const activePlanPayload = {
+        planId: plan._id,
+        name: plan.name,
+        type: plan.type,
+        level: plan.level,
+        goal: plan.goal,
+        startDate: selectedDate,
+        totalWorkouts: totalPlanWorkouts,
+        workoutMap,
+        dates: response.data?.dates || workoutMap.map((item) => item.date),
+        updatedAt: new Date().toISOString(),
+      };
+
+      try {
+        await AsyncStorage.setItem(
+          "activeTrainingPlan",
+          JSON.stringify(activePlanPayload)
+        );
+      } catch (storageError) {
+        console.error("Failed to store active training plan:", storageError);
+      }
       
       const { datesProcessed, totalWorkouts } = response.data;
       

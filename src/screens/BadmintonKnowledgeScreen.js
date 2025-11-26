@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import KnowledgeHighlightCard from '../components/KnowledgeHighlightCard';
 import { KNOWLEDGE_CONTENT } from '../data/knowledgeContent';
 import { COLORS, FONTS } from '../styles/commonStyles';
 
@@ -21,6 +22,14 @@ export default function BadmintonKnowledgeScreen({ navigation, route }) {
   }, [categoryId]);
 
   const [activeIndex, setActiveIndex] = React.useState(initialIndex);
+
+  React.useEffect(() => {
+    if (!categoryId) return;
+    const idx = KNOWLEDGE_CONTENT.findIndex((item) => item.id === categoryId);
+    if (idx >= 0) {
+      setActiveIndex(idx);
+    }
+  }, [categoryId]);
 
   const activeCategory =
     KNOWLEDGE_CONTENT[activeIndex] || KNOWLEDGE_CONTENT[0];
@@ -75,62 +84,16 @@ export default function BadmintonKnowledgeScreen({ navigation, route }) {
         contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Highlight card */}
-        <LinearGradient
-          colors={activeCategory?.gradient || ['#EEF6FF', '#F3F5FF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.spotlightCard}
-        >
-          <Text style={styles.spotlightLabel}>Chủ đề nổi bật</Text>
-          <Text style={styles.spotlightTitle}>{activeCategory?.title}</Text>
-          <Text style={styles.spotlightSubtitle}>
-            {activeCategory?.heroSubtitle ||
-              'Khám phá kiến thức then chốt để cải thiện trận đấu.'}
-          </Text>
-          <View style={styles.spotlightActions}>
-            <View style={styles.badge}>
-              <Feather name="zap" size={16} color="#FFFFFF" />
-              <Text style={styles.badgeText}>Nâng trình nhanh</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() =>
-                navigation.navigate('BadmintonKnowledgeDetail', {
-                  categoryId: activeCategory?.id,
-                })
-              }
-            >
-              <Text style={styles.primaryButtonText}>Khám phá ngay</Text>
-              <Feather
-                name="arrow-right"
-                size={16}
-                color="#FFFFFF"
-                style={{ marginLeft: 6 }}
-              />
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.indicatorContainer}>
-          {KNOWLEDGE_CONTENT.map((category, index) => {
-            const isActive = index === activeIndex;
-            return (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.indicatorDot,
-                  isActive && [
-                    styles.indicatorDotActive,
-                    { backgroundColor: category.color },
-                  ],
-                ]}
-                onPress={() => setActiveIndex(index)}
-                activeOpacity={0.8}
-              />
-            );
-          })}
-        </View>
+        <KnowledgeHighlightCard
+          category={activeCategory}
+          activeIndex={activeIndex}
+          onPrimaryPress={() =>
+            navigation.navigate('BadmintonKnowledgeDetail', {
+              categoryId: activeCategory?.id,
+            })
+          }
+          onDotPress={(index) => setActiveIndex(index)}
+        />
 
         {KNOWLEDGE_CONTENT.map((category) => (
           <TouchableOpacity
@@ -241,87 +204,6 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingTop: 20,
     paddingBottom: 20,
-  },
-  spotlightCard: {
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 20,
-    ...{
-      shadowColor: '#92A3FD',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.2,
-      shadowRadius: 16,
-      elevation: 8,
-    },
-  },
-  spotlightLabel: {
-    color: '#1D1617',
-    opacity: 0.6,
-    fontSize: 13,
-    fontWeight: FONTS.medium,
-    marginBottom: 4,
-  },
-  spotlightTitle: {
-    fontSize: 22,
-    fontWeight: FONTS.bold,
-    color: '#1D1617',
-    marginBottom: 8,
-  },
-  spotlightSubtitle: {
-    color: '#4D4D4D',
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  spotlightActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  indicatorContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 20,
-  },
-  indicatorDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#E0E0E0',
-  },
-  indicatorDotActive: {
-    width: 22,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#92A3FD',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    marginLeft: 6,
-    fontWeight: FONTS.medium,
-  },
-  primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1D1617',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: FONTS.semiBold,
   },
   categoryCard: {
     marginBottom: 16,

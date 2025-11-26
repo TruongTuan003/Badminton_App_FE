@@ -119,18 +119,8 @@ export default function BadmintonKnowledgeDetailScreen({ navigation, route }) {
 
       <View style={styles.bottomButtonWrapper}>
         <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate('Workout')}
-        >
-          <Text style={styles.secondaryButtonText}>Quay lại tập luyện</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() =>
-            navigation.navigate('BadmintonKnowledge', {
-              categoryId: category?.id,
-            })
-          }
+          onPress={() => navigation.goBack()}
         >
           <Text style={styles.primaryButtonText}>Xem chủ đề khác</Text>
         </TouchableOpacity>

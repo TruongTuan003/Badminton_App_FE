@@ -16,6 +16,8 @@ import {
 import { LineChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ChatBotAI from "../components/ChatBotAI";
+import KnowledgeHighlightCard from "../components/KnowledgeHighlightCard";
+import { KNOWLEDGE_CONTENT } from "../data/knowledgeContent";
 import { mealScheduleAPI, scheduleAPI, trainingLogAPI, trainingPlanAPI, userAPI } from "../services/api";
 import { FONTS } from "../styles/commonStyles";
 import { calculateBMI } from "../utils/bmiCalculator";
@@ -44,6 +46,7 @@ export default function HomeScreen({ navigation, route }) {
   });
   const [planProgressLoading, setPlanProgressLoading] = React.useState(false);
   const calculatingProgressRef = React.useRef(false);
+  const [knowledgeActiveIndex, setKnowledgeActiveIndex] = React.useState(0);
   const todayStr = (() => {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -549,6 +552,19 @@ export default function HomeScreen({ navigation, route }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTrainingPlan]);
 
+  // Auto-scroll KnowledgeHighlightCard mỗi 5 giây
+  React.useEffect(() => {
+    if (KNOWLEDGE_CONTENT.length === 0) return;
+
+    const interval = setInterval(() => {
+      setKnowledgeActiveIndex((prevIndex) => {
+        return (prevIndex + 1) % KNOWLEDGE_CONTENT.length;
+      });
+    }, 5000); // 5 giây
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Lấy chiều cao và cân nặng từ userData hoặc sử dụng giá trị mặc định
   const fullName = userData?.name || "Người dùng";
   let goalsArray = [];
@@ -677,31 +693,16 @@ export default function HomeScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        {/* BMI Card */}
-        <LinearGradient
-          colors={["#D0E5FF", "#E8F0FF"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.bmiCard}
-        >
-          <View style={styles.bmiInfo}>
-            <Text style={styles.bmiTitle}>BMI (Body Mass Index)</Text>
-            <Text style={styles.bmiSubtitle}>
-              Bạn có thể trạng {bmi.category}
-            </Text>
-            <TouchableOpacity
-              style={styles.viewMoreButton}
-              onPress={() => navigation.navigate("User", userData)}
-            >
-              <Text style={styles.viewMoreText}>Xem thêm</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.bmiChart}>
-            <View style={styles.bmiValue}>
-              <Text style={styles.bmiValueText}>{bmi.value}</Text>
-            </View>
-          </View>
-        </LinearGradient>
+        {/* Knowledge Highlight Card */}
+        <KnowledgeHighlightCard
+          activeIndex={knowledgeActiveIndex}
+          onIndexChange={setKnowledgeActiveIndex}
+          onPrimaryPress={(category) => {
+            navigation.navigate("BadmintonKnowledgeDetail", {
+              categoryId: category.id,
+            });
+          }}
+        />
 
         {/* Recommended Plan Card - Dành cho bạn */}
         {recommendedPlans.length > 0 && (
@@ -1322,68 +1323,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F8F8",
     justifyContent: "center",
     alignItems: "center",
-  },
-
-  // BMI Card
-  bmiCard: {
-    flexDirection: "row",
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: "#92A3FD",
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
-  },
-  bmiInfo: {
-    flex: 3,
-  },
-  bmiTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#1D1617",
-    marginBottom: 5,
-  },
-  bmiSubtitle: {
-    fontSize: 12,
-    color: "#7B6F72",
-    marginBottom: 15,
-  },
-  viewMoreButton: {
-    backgroundColor: "#92A3FD",
-    borderRadius: 50,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    alignSelf: "flex-start",
-  },
-  viewMoreText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  bmiChart: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  bmiValue: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#92A3FD",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  bmiValueText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
   },
 
   // Recommended Plan Section

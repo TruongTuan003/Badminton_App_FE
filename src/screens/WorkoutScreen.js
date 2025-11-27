@@ -199,35 +199,6 @@ export default function WorkoutScreen({ navigation }) {
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* Badminton Knowledge Card */}
-        <LinearGradient
-          colors={["#E8F5E9", "#F1F8F4"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.planCard}
-        >
-          <TouchableOpacity
-            style={styles.planCardTouchable}
-            onPress={() => navigation.navigate("BadmintonKnowledge")}
-          >
-            <LinearGradient
-              colors={["#4CAF50", "#66BB6A"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.planCardIcon}
-            >
-              <Feather name="book-open" size={28} color="#fff" />
-            </LinearGradient>
-            <View style={styles.planCardContent}>
-              <Text style={styles.planCardTitle}>Kiến thức cầu lông</Text>
-              <Text style={styles.planCardDescription}>
-                Luật chơi, vận động viên, chiến thuật, vợt và giày
-              </Text>
-            </View>
-            <Feather name="chevron-right" size={24} color="#4CAF50" />
-          </TouchableOpacity>
-        </LinearGradient>
-
         {/* Categories */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>

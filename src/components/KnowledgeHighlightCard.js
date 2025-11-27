@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -14,9 +14,10 @@ import {
 import { KNOWLEDGE_CONTENT } from '../data/knowledgeContent';
 import { COLORS, FONTS } from '../styles/commonStyles';
 
-const { width } = Dimensions.get('window');
-const CARD_PADDING = 24;
-const CARD_WIDTH = width - (CARD_PADDING * 2); // 24px padding on each side
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// HomeScreen has paddingHorizontal: 20, so we need to account for that
+const SCREEN_PADDING = 20;
+const CARD_WIDTH = SCREEN_WIDTH - (SCREEN_PADDING * 2); // Full width minus screen padding
 
 export default function KnowledgeHighlightCard({
   activeIndex = 0,
@@ -33,7 +34,7 @@ export default function KnowledgeHighlightCard({
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / CARD_WIDTH);
     
-    if (index !== activeIndex && handleIndexChange) {
+    if (index !== activeIndex && handleIndexChange && index >= 0 && index < data.length) {
       handleIndexChange(index);
     }
   };
@@ -46,53 +47,67 @@ export default function KnowledgeHighlightCard({
     handleIndexChange?.(index);
   };
 
+  // Auto-scroll when activeIndex changes from outside
+  useEffect(() => {
+    if (activeIndex >= 0 && activeIndex < data.length) {
+      scrollViewRef.current?.scrollTo({
+        x: activeIndex * CARD_WIDTH,
+        animated: true,
+      });
+    }
+  }, [activeIndex, data.length]);
+
   return (
     <View>
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handleScroll}
-        scrollEventThrottle={16}
-        decelerationRate="fast"
-        snapToInterval={CARD_WIDTH}
-        snapToAlignment="start"
-        contentContainerStyle={styles.scrollContent}
-        style={styles.scrollView}
-      >
-        {data.map((category, index) => (
-          <LinearGradient
-            key={category.id}
-            colors={category?.gradient || ['#EEF6FF', '#F3F5FF']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.spotlightCard, { width: CARD_WIDTH }]}
-          >
-            <Text style={styles.spotlightLabel}>Chủ đề nổi bật</Text>
-            <Text style={styles.spotlightTitle}>{category?.title}</Text>
-            <Text style={styles.spotlightSubtitle}>
-              {category?.heroSubtitle ||
-                'Khám phá kiến thức then chốt để cải thiện trận đấu.'}
-            </Text>
-            <View style={styles.spotlightActions}>
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={() => onPrimaryPress?.(category, index)}
-                activeOpacity={0.9}
-              >
-                <Text style={styles.primaryButtonText}>Khám phá ngay</Text>
-                <Feather
-                  name="arrow-right"
-                  size={16}
-                  color="#FFFFFF"
-                  style={{ marginLeft: 6 }}
-                />
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-        ))}
-      </ScrollView>
+      <View style={styles.container}>
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleScroll}
+          scrollEventThrottle={16}
+          decelerationRate="fast"
+          snapToInterval={CARD_WIDTH}
+          snapToAlignment="start"
+          contentContainerStyle={styles.scrollContent}
+          style={styles.scrollView}
+          clipsToBounds={true}
+          bounces={false}
+        >
+          {data.map((category, index) => (
+            <LinearGradient
+              key={category.id}
+              colors={category?.gradient || ['#EEF6FF', '#F3F5FF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.spotlightCard, { width: CARD_WIDTH }]}
+            >
+              <Text style={styles.spotlightLabel}>Chủ đề nổi bật</Text>
+              <Text style={styles.spotlightTitle}>{category?.title}</Text>
+              <Text style={styles.spotlightSubtitle}>
+                {category?.heroSubtitle ||
+                  'Khám phá kiến thức then chốt để cải thiện trận đấu.'}
+              </Text>
+              <View style={styles.spotlightActions}>
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  onPress={() => onPrimaryPress?.(category, index)}
+                  activeOpacity={0.9}
+                >
+                  <Text style={styles.primaryButtonText}>Khám phá ngay</Text>
+                  <Feather
+                    name="arrow-right"
+                    size={16}
+                    color="#FFFFFF"
+                    style={{ marginLeft: 6 }}
+                  />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          ))}
+        </ScrollView>
+      </View>
 
       <View style={styles.indicatorContainer}>
         {data.map((item, index) => {
@@ -118,11 +133,17 @@ export default function KnowledgeHighlightCard({
 }
 
 const styles = StyleSheet.create({
+  container: {
+    marginBottom: 20,
+    marginHorizontal: -SCREEN_PADDING, // Extend to full screen width
+    width: SCREEN_WIDTH,
+    overflow: 'hidden',
+  },
   scrollView: {
-    marginHorizontal: -24, 
+    width: SCREEN_WIDTH,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: SCREEN_PADDING, // Add padding inside
   },
   spotlightCard: {
     borderRadius: 24,

@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { Ionicons, MaterialIcons, Feather } from "@expo/vector-icons";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,10 +15,18 @@ import { Calendar } from "react-native-calendars";
 import { trainingPlanAPI, scheduleAPI } from "../services/api";
 
 export default function TrainingPlanDetailScreen({ route, navigation }) {
-  const { plan } = route.params;
+  const { plan, isActive, startDate: activeStartDate } = route.params;
   const [applying, setApplying] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  });
+  const [completedWorkouts, setCompletedWorkouts] = useState(new Set()); // Set của "date-workoutId"
+  const [loadingProgress, setLoadingProgress] = useState(false);
 
   const parseLocalDate = (dateStr) => {
     if (!dateStr || !dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -28,6 +36,14 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
     const date = new Date(year, month - 1, day);
     date.setHours(0, 0, 0, 0);
     return date;
+  };
+
+  // Format date thành YYYY-MM-DD (local time, không dùng toISOString để tránh lỗi timezone)
+  const toLocalDateStr = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   const buildWorkoutMap = () => {
@@ -56,7 +72,7 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
       const dateCopy = new Date(dateObj);
       dateCopy.setHours(0, 0, 0, 0);
       result.push({
-        date: dateCopy.toISOString().split("T")[0],
+        date: toLocalDateStr(dateCopy),
         workoutIds,
       });
     };
@@ -105,6 +121,190 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
     return descMap[type] || "";
   };
 
+  // Tính ngày thực tế cho mỗi planDay dựa trên startDate
+  const getActualDate = (planDayIndex, planDayValue) => {
+    if (!isActive || !activeStartDate) return null;
+    
+    const startDateObj = parseLocalDate(activeStartDate);
+    const startDayOfWeek = startDateObj.getDay();
+    
+    if (plan.type === "daily") {
+      return startDateObj;
+    } else if (plan.type === "weekly") {
+      // planDayValue là thứ trong tuần (0=CN, 1=T2, ..., 6=T7)
+      let daysToAdd = planDayValue - startDayOfWeek;
+      if (daysToAdd < 0) daysToAdd += 7;
+      const targetDate = new Date(startDateObj);
+      targetDate.setDate(startDateObj.getDate() + daysToAdd);
+      return targetDate;
+    } else if (plan.type === "monthly") {
+      // planDayValue là ngày trong tháng (1-30)
+      const targetDate = new Date(startDateObj);
+      targetDate.setDate(startDateObj.getDate() + (planDayValue - 1));
+      return targetDate;
+    }
+    return null;
+  };
+
+  // Format ngày thành chuỗi hiển thị (ngày/tháng/năm)
+  const formatDate = (date) => {
+    if (!date) return "";
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  // Kiểm tra workout đã hoàn thành chưa (kiểm tra theo date + workoutId)
+  const isWorkoutDone = (dateStr, workoutId) => {
+    if (!dateStr || !workoutId) return false;
+    const normalizedId = typeof workoutId === "object" ? workoutId._id : workoutId;
+    const key = `${dateStr}-${normalizedId}`;
+    const isDone = completedWorkouts.has(key);
+    
+    if (completedWorkouts.size > 0) {
+      console.log(`🔍 isWorkoutDone check: ${key} -> ${isDone}`);
+    }
+    return isDone;
+  };
+  
+  // Lấy ngày đã hoàn thành của một workout (từ completed workouts)
+  const getCompletedDate = (workoutId) => {
+    if (!workoutId) return null;
+    const normalizedId = typeof workoutId === "object" ? workoutId._id : workoutId;
+    
+    for (const key of completedWorkouts) {
+      if (key.endsWith(`-${normalizedId}`)) {
+        // key format: "date-workoutId"
+        const date = key.replace(`-${normalizedId}`, "");
+        return date;
+      }
+    }
+    return null;
+  };
+
+  // Fetch completed workouts khi isActive
+  useEffect(() => {
+    if (!isActive || !activeStartDate) {
+      console.log("📋 Skip fetch completed workouts:", { isActive, activeStartDate });
+      return;
+    }
+
+    const fetchCompletedWorkouts = async () => {
+      setLoadingProgress(true);
+      console.log("📋 Fetching completed workouts for plan detail...");
+      console.log("📋 activeStartDate:", activeStartDate);
+      console.log("📋 plan.type:", plan.type);
+      
+      try {
+        // Lấy danh sách tất cả workoutIds trong kế hoạch
+        const planWorkoutIds = new Set();
+        if (plan.planDays) {
+          plan.planDays.forEach((planDay) => {
+            if (planDay.workouts) {
+              planDay.workouts.forEach((workout) => {
+                const wId = typeof workout.trainingId === "object" 
+                  ? workout.trainingId._id 
+                  : workout.trainingId;
+                if (wId) planWorkoutIds.add(String(wId));
+              });
+            }
+          });
+        }
+        console.log("📋 Plan workout IDs:", Array.from(planWorkoutIds));
+        
+        const startDateObj = parseLocalDate(activeStartDate);
+        startDateObj.setHours(0, 0, 0, 0);
+        
+        // Tính ngày cuối cùng của plan
+        let endDate = new Date(startDateObj);
+        if (plan.type === "daily") {
+          endDate = new Date(startDateObj);
+        } else if (plan.type === "weekly") {
+          endDate.setDate(startDateObj.getDate() + 6);
+        } else if (plan.type === "monthly") {
+          endDate.setDate(startDateObj.getDate() + 29);
+        }
+        
+        // Thêm ngày hôm nay vào range nếu cần
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = toLocalDateStr(today);
+        
+        console.log("📋 Date range:", toLocalDateStr(startDateObj), "to", toLocalDateStr(endDate));
+        console.log("📋 Today:", todayStr);
+        
+        // Tạo danh sách ngày (từ startDate đến endDate)
+        const datesSet = new Set();
+        const currentDate = new Date(startDateObj);
+        while (currentDate <= endDate) {
+          datesSet.add(toLocalDateStr(currentDate));
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        // Thêm ngày hôm nay nếu nằm trong range hoặc gần range
+        datesSet.add(todayStr);
+        
+        // Tính tất cả các ngày thực tế dựa trên plan days
+        if (plan.planDays && plan.type === "weekly") {
+          const startDayOfWeek = startDateObj.getDay();
+          plan.planDays.forEach((planDay) => {
+            if (planDay.day !== undefined && planDay.day !== null) {
+              let daysToAdd = planDay.day - startDayOfWeek;
+              if (daysToAdd < 0) daysToAdd += 7;
+              const targetDate = new Date(startDateObj);
+              targetDate.setDate(startDateObj.getDate() + daysToAdd);
+              datesSet.add(toLocalDateStr(targetDate));
+            }
+          });
+        }
+        
+        const datesArray = Array.from(datesSet).sort();
+        console.log("📋 Dates to check:", datesArray);
+        
+        // Fetch schedule details cho tất cả ngày
+        const completed = new Set();
+        for (const dateStr of datesArray) {
+          try {
+            const res = await scheduleAPI.getByDate(dateStr);
+            const details = res.data?.details || [];
+            console.log(`📋 Date ${dateStr}: ${details.length} details`);
+            
+            details.forEach((detail) => {
+              const status = String(detail.status || "").toLowerCase();
+              const workoutId = typeof detail.workoutId === "object" 
+                ? detail.workoutId._id 
+                : detail.workoutId;
+              const workoutIdStr = String(workoutId);
+              
+              // Chỉ đếm bài tập done nếu thuộc kế hoạch
+              const isInPlan = planWorkoutIds.has(workoutIdStr);
+              console.log(`   - workoutId: ${workoutId}, status: ${status}, inPlan: ${isInPlan}`);
+              
+              if (status === "done" && isInPlan) {
+                const key = `${dateStr}-${workoutId}`;
+                completed.add(key);
+                console.log(`   ✅ Added to completed: ${key}`);
+              }
+            });
+          } catch (err) {
+            // Ignore 404 errors
+            console.log(`📋 Date ${dateStr}: no schedule (404)`);
+          }
+        }
+        
+        setCompletedWorkouts(completed);
+        console.log(`✅ Loaded ${completed.size} completed workouts:`, Array.from(completed));
+      } catch (error) {
+        console.error("Error fetching completed workouts:", error);
+      } finally {
+        setLoadingProgress(false);
+      }
+    };
+
+    fetchCompletedWorkouts();
+  }, [isActive, activeStartDate, plan.type, plan.planDays]);
+
   const getDayName = (day, type) => {
     if (type === "daily") {
       return "Ngày 1";
@@ -134,14 +334,14 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
         for (let i = 0; i < 7; i++) {
           const date = new Date(startDate);
           date.setDate(date.getDate() + i);
-          datesToCheck.push(date.toISOString().split("T")[0]);
+          datesToCheck.push(toLocalDateStr(date));
         }
       } else if (plan.type === "monthly") {
         // 30 ngày
         for (let i = 0; i < 30; i++) {
           const date = new Date(startDate);
           date.setDate(date.getDate() + i);
-          datesToCheck.push(date.toISOString().split("T")[0]);
+          datesToCheck.push(toLocalDateStr(date));
         }
       }
 
@@ -355,71 +555,130 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
         </View>
 
         {/* Workout Details */}
-        <View style={styles.workoutsCard}>
-          <Text style={styles.sectionTitle}>Chi tiết bài tập</Text>
+        <View style={[styles.workoutsCard, isActive && styles.workoutsCardNoFooter]}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Chi tiết bài tập</Text>
+            {loadingProgress && (
+              <ActivityIndicator size="small" color="#92A3FD" />
+            )}
+          </View>
           
           {plan.planDays && plan.planDays.length > 0 ? (
-            plan.planDays.map((planDay, index) => (
-              <View key={index} style={styles.dayContainer}>
-                <View style={styles.dayHeader}>
-                  <Text style={styles.dayName}>{getDayName(planDay.day, plan.type)}</Text>
-                  <Text style={styles.workoutCount}>
-                    {planDay.workouts?.length || 0} bài tập
-                  </Text>
-                </View>
-                
-                {planDay.workouts && planDay.workouts.length > 0 ? (
-                  planDay.workouts.map((workout, wIndex) => {
-                    const training = typeof workout.trainingId === 'object' 
-                      ? workout.trainingId 
-                      : null;
-                    
-                    return (
-                      <View key={wIndex} style={styles.workoutItem}>
-                        <View style={styles.workoutNumber}>
-                          <Text style={styles.workoutNumberText}>{wIndex + 1}</Text>
+            // Sắp xếp planDays theo ngày tăng dần khi isActive
+            [...plan.planDays]
+              .map((planDay, originalIndex) => ({
+                ...planDay,
+                originalIndex,
+                actualDate: getActualDate(originalIndex, planDay.day),
+              }))
+              .sort((a, b) => {
+                if (!isActive || !a.actualDate || !b.actualDate) return 0;
+                return a.actualDate.getTime() - b.actualDate.getTime();
+              })
+              .map((planDay, index) => {
+              const actualDate = planDay.actualDate;
+              const actualDateStr = actualDate ? toLocalDateStr(actualDate) : null;
+              
+              // Debug log
+              if (isActive && completedWorkouts.size > 0) {
+                console.log(`📅 planDay[${index}]: day=${planDay.day}, actualDateStr=${actualDateStr}`);
+              }
+              
+              // Đếm số bài tập đã hoàn thành trong ngày (kiểm tra theo workoutId và ngày từ completed)
+              const doneCount = planDay.workouts?.filter(w => {
+                const wId = typeof w.trainingId === "object" ? w.trainingId._id : w.trainingId;
+                const completedDate = getCompletedDate(wId);
+                // Kiểm tra workout có completed và ngày completed khớp với actualDateStr
+                return completedDate && completedDate === actualDateStr;
+              }).length || 0;
+              const totalCount = planDay.workouts?.length || 0;
+              const allDone = doneCount === totalCount && totalCount > 0;
+              
+              return (
+                <View key={index} style={[styles.dayContainer, allDone && styles.dayContainerDone]}>
+                  <View style={styles.dayHeader}>
+                    <View style={styles.dayTitleContainer}>
+                      <Text style={[styles.dayName, allDone && styles.dayNameDone]}>
+                        {isActive && actualDate ? formatDate(actualDate) : getDayName(planDay.day, plan.type)}
+                      </Text>
+                    </View>
+                    <View style={styles.dayCountContainer}>
+                      {isActive && doneCount > 0 && (
+                        <View style={styles.doneCountBadge}>
+                          <Feather name="check" size={12} color="#22C55E" />
+                          <Text style={styles.doneCountText}>{doneCount}/{totalCount}</Text>
                         </View>
-                        <View style={styles.workoutInfo}>
-                          <Text style={styles.workoutTitle}>
-                            {training?.title || "Bài tập"}
-                          </Text>
-                          {workout.time && (
-                            <Text style={styles.workoutTime}>
-                              🕐 {workout.time}
+                      )}
+                      {!isActive && (
+                        <Text style={styles.workoutCount}>
+                          {totalCount} bài tập
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  
+                  {planDay.workouts && planDay.workouts.length > 0 ? (
+                    planDay.workouts.map((workout, wIndex) => {
+                      const training = typeof workout.trainingId === 'object' 
+                        ? workout.trainingId 
+                        : null;
+                      const workoutId = training?._id || workout.trainingId;
+                      // Kiểm tra workout có completed và ngày completed khớp với actualDateStr
+                      const completedDate = getCompletedDate(workoutId);
+                      const isDone = completedDate && completedDate === actualDateStr;
+                      
+                      return (
+                        <View key={wIndex} style={styles.workoutItem}>
+                          <View style={styles.workoutNumber}>
+                            <Text style={styles.workoutNumberText}>{wIndex + 1}</Text>
+                          </View>
+                          <View style={styles.workoutInfo}>
+                            <Text style={styles.workoutTitle}>
+                              {training?.title || "Bài tập"}
                             </Text>
+                            {workout.time && (
+                              <Text style={styles.workoutTime}>
+                                🕐 {workout.time}
+                              </Text>
+                            )}
+                          </View>
+                          {isDone && (
+                            <Text style={styles.doneText}>Done</Text>
                           )}
                         </View>
-                      </View>
-                    );
-                  })
-                ) : (
-                  <Text style={styles.noWorkoutText}>Chưa có bài tập</Text>
-                )}
-              </View>
-            ))
+                      );
+                    })
+                  ) : (
+                    <Text style={styles.noWorkoutText}>Chưa có bài tập</Text>
+                  )}
+                </View>
+              );
+            })
           ) : (
             <Text style={styles.noDataText}>Chưa có dữ liệu bài tập</Text>
           )}
         </View>
       </ScrollView>
 
-      {/* Apply Button */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.applyButton}
-          onPress={() => setShowCalendar(true)}
-          disabled={applying}
-        >
-          {applying ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <MaterialIcons name="event-available" size={24} color="#fff" />
-              <Text style={styles.applyButtonText}>Áp dụng kế hoạch</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
+      {/* Apply Button - Ẩn nếu đang theo dõi kế hoạch này */}
+      {!isActive && (
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.applyButton}
+            onPress={() => setShowCalendar(true)}
+            disabled={applying}
+          >
+            {applying ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <MaterialIcons name="event-available" size={24} color="#fff" />
+                <Text style={styles.applyButtonText}>Áp dụng kế hoạch</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Calendar Modal */}
       <Modal
@@ -449,7 +708,10 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
                 textMonthFontWeight: "bold",
                 textMonthFontSize: 18,
               }}
-              minDate={new Date().toISOString().split("T")[0]}
+              minDate={(() => {
+                const now = new Date();
+                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+              })()}
             />
 
             <View style={styles.modalFooter}>
@@ -572,11 +834,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F0F0F0",
   },
+  workoutsCardNoFooter: {
+    marginBottom: 20,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#1D1617",
-    marginBottom: 16,
   },
   dayContainer: {
     marginBottom: 20,
@@ -722,6 +986,81 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#fff",
+  },
+  // Styles cho active plan
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  dayTitleContainer: {
+    flexDirection: "column",
+  },
+  dayActualDate: {
+    fontSize: 13,
+    color: "#7B6F72",
+    marginTop: 2,
+  },
+  dayCountContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  doneCountBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  doneCountText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#22C55E",
+  },
+  dayContainerDone: {
+    backgroundColor: "#F0FDF4",
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: -12,
+    borderBottomColor: "#BBF7D0",
+  },
+  dayNameDone: {
+    color: "#16A34A",
+  },
+  workoutItemDone: {
+    backgroundColor: "#DCFCE7",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+  },
+  workoutNumberDone: {
+    backgroundColor: "#22C55E",
+  },
+  workoutTitleDone: {
+    color: "#16A34A",
+  },
+  workoutTimeDone: {
+    color: "#22C55E",
+  },
+  doneBadge: {
+    backgroundColor: "#22C55E",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  doneBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  doneText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#22C55E",
+    marginLeft: 8,
   },
 });
 

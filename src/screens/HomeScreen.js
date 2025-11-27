@@ -348,6 +348,13 @@ export default function HomeScreen({ navigation, route }) {
     // Tránh gọi nhiều lần đồng thời
     if (calculatingProgressRef.current) {
       console.log("⏸️ Progress calculation already in progress, skipping...");
+      // Reset nếu bị stuck quá lâu (safety mechanism)
+      setTimeout(() => {
+        if (calculatingProgressRef.current) {
+          console.log("⚠️ Progress calculation was stuck, resetting...");
+          calculatingProgressRef.current = false;
+        }
+      }, 10000); // Reset sau 10 giây nếu vẫn stuck
       return;
     }
 
@@ -362,14 +369,34 @@ export default function HomeScreen({ navigation, route }) {
     }
 
     calculatingProgressRef.current = true;
-    console.log("📊 Calculating plan progress for:", plan.planId);
-    console.log("📋 Workout map entries:", plan.workoutMap.length);
+    console.log("📊 ========== START CALCULATING PLAN PROGRESS ==========");
+    console.log("📊 Plan ID:", plan.planId);
+    console.log("📊 Plan Name:", plan.name);
+    console.log("📊 Plan Type:", plan.type);
+    console.log("📋 Workout map entries:", plan.workoutMap?.length || 0);
+    console.log("📋 Total workouts (from plan):", plan.totalWorkouts);
+    
+    if (!plan.workoutMap || plan.workoutMap.length === 0) {
+      console.error("❌ ERROR: workoutMap is empty or invalid!");
+      setActivePlanProgress({ completed: 0, total: plan?.totalWorkouts || 0 });
+      calculatingProgressRef.current = false;
+      return;
+    }
 
     const normalizeId = (id) => {
       if (!id) return "";
       if (typeof id === "string") return id.trim();
-      if (id?._id) return id._id.toString().trim();
-      return id.toString().trim();
+      if (id?._id) return String(id._id).trim();
+      if (typeof id === "object" && id.toString) return String(id).trim();
+      return String(id).trim();
+    };
+
+    // Format date thành YYYY-MM-DD (local time, không dùng toISOString để tránh lỗi timezone)
+    const toLocalDateStr = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     };
 
     const normalizedWorkoutMap = plan.workoutMap.map((entry) => ({
@@ -397,103 +424,191 @@ export default function HomeScreen({ navigation, route }) {
       // Tạo một Set để lưu các cặp (date, workoutId) đã hoàn thành
       const completedWorkouts = new Set();
       
-      // Fetch schedule details cho tất cả các ngày trong workoutMap
+      // Tính toán tất cả các ngày từ startDate đến hết plan
+      const startDate = plan.startDate ? new Date(plan.startDate) : null;
+      
+      if (!startDate) {
+        console.error("❌ ERROR: startDate is missing from plan!");
+        setActivePlanProgress({ completed: 0, total: totalPlanned });
+        calculatingProgressRef.current = false;
+        setPlanProgressLoading(false);
+        return;
+      }
+      
+      startDate.setHours(0, 0, 0, 0);
+      
+      // Tính ngày cuối cùng của plan dựa trên type
+      let endDate = new Date(startDate);
+      if (plan.type === "daily") {
+        // 1 ngày
+        endDate = new Date(startDate);
+      } else if (plan.type === "weekly") {
+        // 7 ngày (0-6)
+        endDate.setDate(startDate.getDate() + 6);
+      } else if (plan.type === "monthly") {
+        // 30 ngày (0-29)
+        endDate.setDate(startDate.getDate() + 29);
+      }
+      endDate.setHours(23, 59, 59, 999);
+      
+      const startDateStr = toLocalDateStr(startDate);
+      const endDateStr = toLocalDateStr(endDate);
+      console.log(`📅 Plan period: ${startDateStr} to ${endDateStr} (type: ${plan.type})`);
+      
+      // Tạo danh sách tất cả các ngày từ startDate đến endDate (toàn bộ thời gian của plan)
+      const datesArray = [];
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dateStr = toLocalDateStr(currentDate);
+        datesArray.push(dateStr);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      console.log(`📅 Dates to check (from startDate to endDate): [${datesArray.join(", ")}] (total: ${datesArray.length} days)`);
+      
+      // Fetch schedule details cho tất cả các ngày cần kiểm tra
       const scheduleDetailsList = await Promise.all(
-        normalizedWorkoutMap.map(async (entry) => {
-          if (!entry?.date || !entry?.workoutIds?.length) {
-            return { date: entry?.date || "", details: [] };
-          }
+        datesArray.map(async (dateStr) => {
           try {
-            const res = await scheduleAPI.getByDate(entry.date);
+            const res = await scheduleAPI.getByDate(dateStr);
             const details = res.data?.details || [];
-            console.log(`📅 Date ${entry.date}: ${details.length} schedule details`);
+            console.log(`📅 Date ${dateStr}: ${details.length} schedule details`);
             // Log chi tiết để debug
             if (details.length > 0) {
               details.forEach((d, idx) => {
-                console.log(`  Detail[${idx}]: workoutId=${JSON.stringify(d.workoutId)}, status=${d.status}`);
+                const actualId = normalizeId(d.workoutId);
+                console.log(`  Detail[${idx}]: workoutId=${actualId} (raw: ${JSON.stringify(d.workoutId)}), status=${d.status}`);
               });
             }
-            return { date: entry.date, details };
+            return { date: dateStr, details };
           } catch (error) {
             if (error.response?.status === 404) {
-              return { date: entry.date, details: [] };
+              console.log(`⚠️ No schedule found for date ${dateStr} (404)`);
+              return { date: dateStr, details: [] };
             }
-            console.error(`Error fetching schedule for ${entry.date}:`, error);
-            return { date: entry.date, details: [] };
+            console.error(`❌ Error fetching schedule for ${dateStr}:`, error);
+            console.error(`❌ Error details:`, error.message, error.response?.data);
+            return { date: dateStr, details: [] };
           }
         })
       );
+      
+      console.log(`📦 Fetched ${scheduleDetailsList.length} schedule detail sets`);
 
       // Tạo map để dễ tra cứu
       const detailMap = scheduleDetailsList.reduce((acc, item) => {
         acc[item.date] = item.details;
         return acc;
       }, {});
+      
+      console.log(`🗺️ Created detailMap with ${Object.keys(detailMap).length} dates`);
+
+      // Lấy danh sách tất cả workoutIds trong kế hoạch
+      const planWorkoutIds = new Set();
+      normalizedWorkoutMap.forEach((entry) => {
+        entry.workoutIds.forEach((wId) => {
+          if (wId) planWorkoutIds.add(wId);
+        });
+      });
+      console.log(`📋 Plan workout IDs (${planWorkoutIds.size}):`, Array.from(planWorkoutIds));
 
       // Đếm số workout đã hoàn thành
-      // Có 2 cách: 
-      // 1. Đếm các workout có trong workoutMap và status = "done" (chính xác hơn nhưng có thể bỏ sót nếu schedule thay đổi)
-      // 2. Đếm tất cả workout có status = "done" trong các ngày của kế hoạch (bao quát hơn nhưng có thể đếm cả workout từ kế hoạch khác)
-      // Tôi sẽ dùng cách 1 nhưng cải thiện để xử lý trường hợp workoutIds không khớp
-      
-      normalizedWorkoutMap.forEach((entry) => {
-        if (!entry?.date) return;
-        
-        const details = detailMap[entry.date] || [];
-        console.log(`🔍 Checking date ${entry.date}:`);
-        console.log(`  📋 Planned workoutIds: [${entry.workoutIds.join(", ")}]`);
+      // Strategy: Chỉ đếm workout done nếu workoutId thuộc kế hoạch
+      datesArray.forEach((dateStr) => {
+        const details = detailMap[dateStr] || [];
+        console.log(`🔍 Checking date ${dateStr}:`);
         console.log(`  📅 Found ${details.length} schedule details`);
         
-        // Cách 1: Đếm các workout có trong workoutMap và status = "done"
-        entry.workoutIds.forEach((plannedWorkoutId) => {
-          const matchedDetail = details.find((detail) => {
-            const detailWorkoutId = normalizeId(detail.workoutId);
-            return detailWorkoutId === plannedWorkoutId;
+        // Log tất cả workoutId thực tế trong schedule và status
+        if (details.length > 0) {
+          details.forEach((d, idx) => {
+            const actualWorkoutId = normalizeId(d.workoutId);
+            const status = d.status || "unknown";
+            const isInPlan = planWorkoutIds.has(actualWorkoutId);
+            console.log(`    📌 Schedule[${idx}]: workoutId=${actualWorkoutId}, status=${status}, inPlan=${isInPlan}`);
           });
+        } else {
+          console.log(`  ⚠️ No schedule found for date ${dateStr}`);
+        }
+        
+        // Đếm workout done trong ngày này CHỈ NẾU workoutId thuộc kế hoạch
+        const doneDetails = details.filter((detail) => {
+          const status = String(detail.status || "").toLowerCase().trim();
+          const isDone = status === "done";
+          const actualId = normalizeId(detail.workoutId);
+          const isInPlan = planWorkoutIds.has(actualId);
           
-          if (matchedDetail && matchedDetail.status === "done") {
-            const key = `${entry.date}-${plannedWorkoutId}`;
+          if (isDone && isInPlan) {
+            console.log(`    ✅ FOUND DONE WORKOUT (in plan): ${actualId} on ${dateStr}`);
+          } else if (isDone && !isInPlan) {
+            console.log(`    ⚠️ FOUND DONE WORKOUT (NOT in plan): ${actualId} on ${dateStr}`);
+          }
+          return isDone && isInPlan;
+        });
+        
+        console.log(`  ✅ Found ${doneDetails.length} done workouts (in plan) out of ${details.length} total`);
+        
+        // Log breakdown của các status để debug
+        if (details.length > 0) {
+          const statusBreakdown = {};
+          details.forEach((d) => {
+            const s = String(d.status || "null");
+            statusBreakdown[s] = (statusBreakdown[s] || 0) + 1;
+          });
+          console.log(`  📊 Status breakdown:`, JSON.stringify(statusBreakdown));
+          
+          // Nếu có workout done, log chi tiết
+          if (doneDetails.length > 0) {
+            console.log(`  🎉 WORKOUTS DONE FOUND (in plan):`, doneDetails.map(d => ({
+              workoutId: normalizeId(d.workoutId),
+              status: d.status,
+              date: dateStr
+            })));
+          }
+        }
+        
+        if (doneDetails.length > 0) {
+          // Đếm workout done trong ngày này (chỉ những workout thuộc kế hoạch)
+          console.log(`  📊 Counting ${doneDetails.length} done workouts (in plan) in this day`);
+          
+          doneDetails.forEach((detail, idx) => {
+            const detailWorkoutId = normalizeId(detail.workoutId);
+            // Sử dụng key unique: date-workoutId để tránh đếm trùng
+            const key = `${dateStr}-${detailWorkoutId}`;
             if (!completedWorkouts.has(key)) {
               completedWorkouts.add(key);
-              console.log(`    ✅ COUNTED (planned): ${plannedWorkoutId} on ${entry.date}`);
+              console.log(`    ✅ COUNTED [${idx + 1}/${doneDetails.length}]: ${detailWorkoutId} on ${dateStr} (status=${detail.status})`);
+            } else {
+              console.log(`    ⏭️  Already counted: ${detailWorkoutId} on ${dateStr}`);
             }
+          });
+        } else {
+          if (details.length > 0) {
+            console.log(`  ⚠️ No done workouts (in plan) found for date ${dateStr}`);
+          } else {
+            console.log(`  ℹ️  No schedule details found for date ${dateStr}`);
           }
-        });
-        
-        // Cách 2: Nếu không tìm thấy workout nào khớp với planned, đếm tất cả workout done trong ngày đó
-        // (để xử lý trường hợp schedule đã thay đổi)
-        const foundPlannedWorkouts = entry.workoutIds.some((plannedWorkoutId) => {
-          return details.some((detail) => {
-            const detailWorkoutId = normalizeId(detail.workoutId);
-            return detailWorkoutId === plannedWorkoutId;
-          });
-        });
-        
-        if (!foundPlannedWorkouts && entry.workoutIds.length > 0) {
-          // Không tìm thấy workout nào trong planned, có thể schedule đã thay đổi
-          // Đếm tất cả workout done trong ngày này
-          details.forEach((detail) => {
-            const detailWorkoutId = normalizeId(detail.workoutId);
-            if (detail.status === "done") {
-              const key = `${entry.date}-${detailWorkoutId}`;
-              if (!completedWorkouts.has(key)) {
-                completedWorkouts.add(key);
-                console.log(`    ✅ COUNTED (fallback): ${detailWorkoutId} on ${entry.date} (schedule changed)`);
-              }
-            }
-          });
         }
       });
 
       const completed = completedWorkouts.size;
-      console.log(`🎯 Progress: ${completed}/${totalPlanned} completed`);
+      console.log(`🎯 ========== FINAL PROGRESS ==========`);
+      console.log(`🎯 Completed: ${completed}`);
+      console.log(`🎯 Total Planned: ${totalPlanned}`);
+      console.log(`🎯 Progress: ${completed}/${totalPlanned} completed (${totalPlanned > 0 ? Math.round((completed / totalPlanned) * 100) : 0}%)`);
+      console.log(`🎯 Completed workouts keys:`, Array.from(completedWorkouts));
+      console.log(`📊 ========== END CALCULATING PLAN PROGRESS ==========`);
 
       setActivePlanProgress({
         completed,
         total: totalPlanned,
       });
     } catch (error) {
-      console.error("❌ Error calculating plan progress:", error);
+      console.error("❌ ========== ERROR CALCULATING PLAN PROGRESS ==========");
+      console.error("❌ Error:", error);
+      console.error("❌ Error message:", error?.message);
+      console.error("❌ Error stack:", error?.stack);
+      console.error("❌ Plan data:", plan ? { planId: plan.planId, name: plan.name, workoutMapLength: plan.workoutMap?.length } : "null");
       setActivePlanProgress({
         completed: 0,
         total: totalPlanned,
@@ -501,6 +616,7 @@ export default function HomeScreen({ navigation, route }) {
     } finally {
       setPlanProgressLoading(false);
       calculatingProgressRef.current = false;
+      console.log("🏁 Progress calculation finished, flag reset");
     }
   }, [activeTrainingPlan]);
 
@@ -518,6 +634,9 @@ export default function HomeScreen({ navigation, route }) {
   React.useEffect(() => {
     fetchRecommendedPlan();
   }, [fetchRecommendedPlan]);
+
+  // Track lần cuối cùng tính tiến độ để tránh tính quá nhiều lần
+  const lastProgressCalculationRef = React.useRef(Date.now());
 
   useFocusEffect(
     React.useCallback(() => {
@@ -541,6 +660,8 @@ export default function HomeScreen({ navigation, route }) {
       // Chờ một chút để đảm bảo các API call khác đã hoàn thành
       const timer = setTimeout(() => {
         if (!calculatingProgressRef.current) {
+          console.log("🔄 Recalculating progress from useEffect (activeTrainingPlan changed)");
+          lastProgressCalculationRef.current = Date.now();
           calculatePlanProgress(activeTrainingPlan);
         }
       }, 500);
@@ -551,6 +672,46 @@ export default function HomeScreen({ navigation, route }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTrainingPlan]);
+
+  // Tính lại tiến độ khi màn hình focus (sau khi hoàn thành workout)
+  // Chỉ tính lại nếu đã qua ít nhất 2 giây từ lần tính trước để tránh fetch liên tục
+  useFocusEffect(
+    React.useCallback(() => {
+      if (activeTrainingPlan) {
+        const now = Date.now();
+        const timeSinceLastCalc = now - lastProgressCalculationRef.current;
+        
+        // Chỉ tính lại nếu đã qua ít nhất 2 giây từ lần tính trước
+        if (timeSinceLastCalc > 2000 && !calculatingProgressRef.current) {
+          const timer = setTimeout(() => {
+            if (!calculatingProgressRef.current && activeTrainingPlan) {
+              console.log("🔄 Recalculating progress on focus");
+              lastProgressCalculationRef.current = Date.now();
+              calculatePlanProgress(activeTrainingPlan);
+            }
+          }, 1000);
+          return () => clearTimeout(timer);
+        }
+      }
+      return undefined;
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTrainingPlan])
+  );
+
+  // Tính lại tiến độ khi todaySchedule thay đổi (sau khi hoàn thành workout)
+  React.useEffect(() => {
+    if (activeTrainingPlan && todaySchedule !== null) {
+      // Chờ một chút để đảm bảo API đã cập nhật xong
+      const timer = setTimeout(() => {
+        if (!calculatingProgressRef.current) {
+          console.log("🔄 Recalculating progress (todaySchedule changed)");
+          calculatePlanProgress(activeTrainingPlan);
+        }
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todaySchedule]);
 
   // Auto-scroll KnowledgeHighlightCard mỗi 5 giây
   React.useEffect(() => {
@@ -739,69 +900,85 @@ export default function HomeScreen({ navigation, route }) {
                     : 0;
 
                 return (
-                  <LinearGradient
+                  <TouchableOpacity
                     key={plan._id}
-                    colors={
-                      isActivePlan
-                        ? ["#E8FBF0", "#D1FAE5"]
-                        : ["#F0F9FF", "#E0F2FE"]
+                    activeOpacity={0.9}
+                    onPress={() =>
+                      navigation.navigate("TrainingPlanDetail", {
+                        plan,
+                        isActive: isActivePlan,
+                        startDate: isActivePlan ? activeTrainingPlan?.startDate : null,
+                      })
                     }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[
-                      styles.recommendedCard,
-                      isActivePlan && styles.activeRecommendedCard,
-                    ]}
                   >
-                    <View style={styles.recommendedCardContent}>
-                      <View style={styles.recommendedTitleRow}>
+                    <LinearGradient
+                      colors={
+                        isActivePlan
+                          ? ["#E8FBF0", "#D1FAE5"]
+                          : ["#F8FAFC", "#EFF6FF"]
+                      }
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[
+                        styles.recommendedCard,
+                        isActivePlan && styles.activeRecommendedCard,
+                      ]}
+                    >
+                      {/* Header: Icon + Name + Badge */}
+                      <View style={styles.recommendedCardHeader}>
                         <LinearGradient
-                          colors={["#3B82F6", "#60A5FA"]}
+                          colors={isActivePlan ? ["#22C55E", "#16A34A"] : ["#3B82F6", "#60A5FA"]}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 1 }}
                           style={styles.recommendedIconContainer}
                         >
-                          <Feather name="target" size={18} color="#FFFFFF" />
+                          <Feather name={isActivePlan ? "check" : "target"} size={16} color="#FFFFFF" />
                         </LinearGradient>
-                        <Text style={styles.recommendedPlanName} numberOfLines={2}>
-                          {plan.name || "Kế hoạch tập luyện"}
-                        </Text>
+                        <View style={styles.recommendedNameContainer}>
+                          <Text style={styles.recommendedPlanName} numberOfLines={1}>
+                            {plan.name || "Kế hoạch tập luyện"}
+                          </Text>
+                          {isActivePlan && (
+                            <View style={styles.activePlanTag}>
+                              <Text style={styles.activePlanTagText}>Đang theo dõi</Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
 
-                      {isActivePlan && (
-                        <View style={styles.activePlanTag}>
-                          <Feather name="check-circle" size={14} color="#22C55E" />
-                          <Text style={styles.activePlanTagText}>Đang theo dõi</Text>
-                        </View>
-                      )}
-
-                      <Text style={styles.recommendedPlanDescription} numberOfLines={3}>
+                      {/* Description */}
+                      <Text style={styles.recommendedPlanDescription} numberOfLines={2}>
                         {plan.description || "Phù hợp với trình độ và mục tiêu của bạn"}
                       </Text>
 
+                      {/* Badges */}
                       <View style={styles.recommendedBadges}>
                         {plan.level && (
-                          <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{getLevelLabel(plan.level)}</Text>
+                          <View style={[styles.badge, isActivePlan && styles.badgeActive]}>
+                            <Feather name="bar-chart-2" size={11} color={isActivePlan ? "#16A34A" : "#3B82F6"} />
+                            <Text style={[styles.badgeText, isActivePlan && styles.badgeTextActive]}>{getLevelLabel(plan.level)}</Text>
                           </View>
                         )}
                         {plan.type && (
-                          <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{getTypeLabel(plan.type)}</Text>
+                          <View style={[styles.badge, isActivePlan && styles.badgeActive]}>
+                            <Feather name="calendar" size={11} color={isActivePlan ? "#16A34A" : "#3B82F6"} />
+                            <Text style={[styles.badgeText, isActivePlan && styles.badgeTextActive]}>{getTypeLabel(plan.type)}</Text>
                           </View>
                         )}
                       </View>
 
+                      {/* Progress Bar (only for active plan) */}
                       {isActivePlan && (
                         <View style={styles.planProgressWrapper}>
                           <View style={styles.planProgressHeader}>
-                            <Text style={styles.planProgressLabel}>
-                              {planProgressLoading ? "Đang cập nhật..." : "Tiến độ"}
-                            </Text>
+                            <View style={styles.planProgressLabelRow}>
+                              <Feather name="zap" size={14} color="#F59E0B" />
+                              <Text style={styles.planProgressLabel}>
+                                {planProgressLoading ? "Đang cập nhật..." : "Tiến độ"}
+                              </Text>
+                            </View>
                             <Text style={styles.planProgressValue}>
-                              {planProgressLoading
-                                ? "--"
-                                : `${completedProgress}/${totalProgress}`}
+                              {planProgressLoading ? "--" : `${completedProgress}/${totalProgress}`}
                             </Text>
                           </View>
                           <View style={styles.planProgressBar}>
@@ -812,60 +989,32 @@ export default function HomeScreen({ navigation, route }) {
                               end={{ x: 1, y: 0 }}
                               style={[
                                 styles.planProgressFill,
-                                {
-                                  width: planProgressLoading
-                                    ? "15%"
-                                    : `${Math.min(progressPercent, 100)}%`,
-                                },
+                                { width: `${Math.max(Math.min(progressPercent, 100), 8)}%` },
                               ]}
                             >
-                              <Feather
-                                name="zap"
-                                size={12}
-                                color="#FFFFFF"
-                                style={styles.planProgressZap}
-                              />
+                              {progressPercent > 10 && (
+                                <Feather name="zap" size={10} color="#FFFFFF" style={styles.planProgressZap} />
+                              )}
                             </LinearGradient>
                           </View>
-                          {!planProgressLoading && (
-                            <Text style={styles.planProgressPercent}>
-                              {progressPercent}% hoàn thành
-                            </Text>
-                          )}
+                          <Text style={styles.planProgressPercent}>
+                            {planProgressLoading ? "--" : `${progressPercent}% hoàn thành`}
+                          </Text>
                         </View>
                       )}
 
-                      <TouchableOpacity
+                      {/* Button Xem chi tiết */}
+                      <LinearGradient
+                        colors={isActivePlan ? ["#16A34A", "#22C55E"] : ["#3B82F6", "#60A5FA"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
                         style={styles.recommendedCardButton}
-                        onPress={() =>
-                          navigation.navigate("TrainingPlanDetail", {
-                            plan,
-                          })
-                        }
                       >
-                        <LinearGradient
-                          colors={
-                            isActivePlan
-                              ? ["#16A34A", "#22C55E"]
-                              : ["#3B82F6", "#60A5FA"]
-                          }
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.recommendedCardButtonGradient}
-                        >
-                          <Text style={styles.recommendedCardButtonText}>
-                            {isActivePlan ? "Tiếp tục kế hoạch" : "Xem chi tiết"}
-                          </Text>
-                          <Feather
-                            name="arrow-right"
-                            size={16}
-                            color="#FFFFFF"
-                            style={{ marginLeft: 6 }}
-                          />
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    </View>
-                  </LinearGradient>
+                        <Text style={styles.recommendedCardButtonText}>Xem chi tiết</Text>
+                        <Feather name="arrow-right" size={16} color="#FFFFFF" />
+                      </LinearGradient>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 );
               })}
             </ScrollView>
@@ -1334,7 +1483,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
-    paddingHorizontal: 0,
   },
   recommendedTitleContainer: {
     flexDirection: "row",
@@ -1356,22 +1504,20 @@ const styles = StyleSheet.create({
   },
   recommendedScrollView: {
     marginHorizontal: -20,
-    paddingHorizontal: 20,
   },
   recommendedScrollContent: {
-    paddingRight: 20,
-    gap: 16,
+    paddingHorizontal: 20,
+    gap: 14,
   },
   recommendedCard: {
-    width: SCREEN_W * 0.85,
+    width: SCREEN_W * 0.82,
     borderRadius: 20,
     padding: 16,
-    marginRight: 16,
     shadowColor: "#3B82F6",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 5,
     borderWidth: 1,
     borderColor: "rgba(59, 130, 246, 0.2)",
   },
@@ -1379,93 +1525,106 @@ const styles = StyleSheet.create({
     borderColor: "rgba(34, 197, 94, 0.4)",
     shadowColor: "#22C55E",
   },
-  recommendedCardContent: {
-    gap: 10,
-  },
-  recommendedTitleRow: {
+  recommendedCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
+    marginBottom: 8,
   },
   recommendedIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
+  },
+  recommendedNameContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   recommendedPlanName: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#1D1617",
-    marginBottom: 4,
+    flex: 1,
   },
   recommendedPlanDescription: {
     fontSize: 13,
     color: "#7B6F72",
     lineHeight: 18,
-    marginBottom: 8,
+    marginBottom: 12,
+    paddingRight: 28,
   },
   activePlanTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    alignSelf: "flex-start",
     backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    marginBottom: 6,
   },
   activePlanTagText: {
     color: "#16A34A",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
   },
   recommendedBadges: {
     flexDirection: "row",
-    gap: 6,
-    flexWrap: "wrap",
+    gap: 8,
     marginBottom: 12,
   },
   badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     backgroundColor: "rgba(59, 130, 246, 0.1)",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
     borderRadius: 10,
   },
+  badgeActive: {
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
+  },
   badgeText: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#3B82F6",
     fontWeight: "600",
   },
+  badgeTextActive: {
+    color: "#16A34A",
+  },
   planProgressWrapper: {
-    marginBottom: 10,
     gap: 6,
     backgroundColor: "rgba(22, 163, 74, 0.08)",
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.3)",
+    borderColor: "rgba(34, 197, 94, 0.25)",
   },
   planProgressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+  planProgressLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   planProgressLabel: {
     fontSize: 12,
     color: "#7B6F72",
+    fontWeight: "500",
   },
   planProgressValue: {
     fontSize: 12,
-    fontWeight: "600",
     color: "#1D1617",
+    fontWeight: "600",
   },
   planProgressBar: {
     height: 14,
-    borderRadius: 10,
-    backgroundColor: "rgba(22, 163, 74, 0.2)",
+    borderRadius: 7,
+    backgroundColor: "rgba(22, 163, 74, 0.15)",
     overflow: "hidden",
     position: "relative",
   },
@@ -1475,19 +1634,19 @@ const styles = StyleSheet.create({
     top: 0,
     height: "100%",
     width: "100%",
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
-    borderRadius: 10,
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    borderRadius: 7,
   },
   planProgressFill: {
     height: "100%",
-    borderRadius: 10,
-    justifyContent: "center",
+    borderRadius: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingRight: 4,
   },
   planProgressZap: {
-    position: "absolute",
-    right: 4,
-    top: "50%",
-    marginTop: -6,
+    marginRight: 2,
   },
   planProgressPercent: {
     fontSize: 12,
@@ -1495,15 +1654,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   recommendedCardButton: {
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  recommendedCardButtonGradient: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+    marginTop: 4,
   },
   recommendedCardButtonText: {
     color: "#FFFFFF",

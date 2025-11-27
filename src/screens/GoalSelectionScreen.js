@@ -95,7 +95,7 @@ export default function GoalSelectionScreen({ navigation, route }) {
           navigation.navigate('BadmintonSurvey', { profileData: completeData });
         } else {
           // Chuyển thẳng đến màn hình Auth
-          navigation.navigate('Auth', { userData: completeData });
+        navigation.navigate('Auth', { userData: completeData });
         }
       } catch (error) {
         console.error('Update goals error:', error.response?.data || error.message);

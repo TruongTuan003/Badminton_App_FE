@@ -83,25 +83,21 @@ export default function KnowledgeHighlightCard({
               end={{ x: 1, y: 1 }}
               style={[styles.spotlightCard, { width: CARD_WIDTH }]}
             >
-              <Text style={styles.spotlightLabel}>Chủ đề nổi bật</Text>
-              <Text style={styles.spotlightTitle}>{category?.title}</Text>
-              <Text style={styles.spotlightSubtitle}>
-                {category?.heroSubtitle ||
-                  'Khám phá kiến thức then chốt để cải thiện trận đấu.'}
-              </Text>
-              <View style={styles.spotlightActions}>
+              <View style={styles.spotlightRow}>
+                <View style={styles.spotlightContent}>
+                  <Text style={styles.spotlightLabel}>Chủ đề nổi bật</Text>
+                  <Text style={styles.spotlightTitle} numberOfLines={1}>{category?.title}</Text>
+                  <Text style={styles.spotlightSubtitle} numberOfLines={2}>
+                    {category?.heroSubtitle ||
+                      'Khám phá kiến thức để cải thiện trận đấu.'}
+                  </Text>
+                </View>
                 <TouchableOpacity
                   style={styles.primaryButton}
                   onPress={() => onPrimaryPress?.(category, index)}
                   activeOpacity={0.9}
                 >
-                  <Text style={styles.primaryButtonText}>Khám phá ngay</Text>
-                  <Feather
-                    name="arrow-right"
-                    size={16}
-                    color="#FFFFFF"
-                    style={{ marginLeft: 6 }}
-                  />
+                  <Feather name="arrow-right" size={18} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
             </LinearGradient>
@@ -134,8 +130,8 @@ export default function KnowledgeHighlightCard({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
-    marginHorizontal: -SCREEN_PADDING, // Extend to full screen width
+    marginBottom: 8,
+    marginHorizontal: -SCREEN_PADDING,
     width: SCREEN_WIDTH,
     overflow: 'hidden',
   },
@@ -143,70 +139,67 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
   },
   scrollContent: {
-    paddingHorizontal: SCREEN_PADDING, // Add padding inside
+    paddingHorizontal: SCREEN_PADDING,
   },
   spotlightCard: {
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 16,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 8,
     shadowColor: '#92A3FD',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  spotlightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  spotlightContent: {
+    flex: 1,
+    marginRight: 14,
   },
   spotlightLabel: {
-    color: '#1D1617',
-    opacity: 0.6,
-    fontSize: 13,
+    color: '#7B6F72',
+    fontSize: 12,
     fontWeight: FONTS.medium,
     marginBottom: 4,
   },
   spotlightTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: FONTS.bold,
     color: '#1D1617',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   spotlightSubtitle: {
-    color: '#4D4D4D',
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  spotlightActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    color: '#7B6F72',
+    fontSize: 13,
+    lineHeight: 18,
   },
   primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#1D1617',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: FONTS.semiBold,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   indicatorContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 20,
+    gap: 6,
+    marginBottom: 16,
   },
   indicatorDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#E0E0E0',
   },
   indicatorDotActive: {
-    width: 22,
-    borderRadius: 12,
+    width: 16,
+    borderRadius: 8,
   },
 });

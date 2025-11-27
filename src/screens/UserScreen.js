@@ -122,6 +122,9 @@ export default function UserScreen({ navigation, route }) {
             </View>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{fullName}</Text>
+              {userData?.email && (
+                <Text style={styles.userEmail}>{userData.email}</Text>
+              )}
             </View>
           </View>
           <TouchableOpacity style={styles.editButton} onPress={handleEditPress}>
@@ -408,7 +411,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1D1617',
-    marginBottom: 5,
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 13,
+    color: '#7B6F72',
+    fontWeight: '400',
   },
   editButton: {
     backgroundColor: '#92A3FD',

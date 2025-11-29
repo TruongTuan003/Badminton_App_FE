@@ -32,7 +32,7 @@ const goals = [
   },
   {
     id: 3,
-    title: 'Quản lí hình thể và sức khỏe',
+    title: 'Quản lý hình thể và sức khỏe',
     description:
       'Giữ cân nặng và sức khỏe ổn định, duy trì phong độ luyện tập.',
     image: require('../assets/images/Vector(2).png'),

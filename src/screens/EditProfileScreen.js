@@ -19,7 +19,7 @@ const { width } = Dimensions.get("window");
 const GOALS = [
   { id: 1, title: "Nâng cao kỹ năng cầu lông", icon: "badminton" },
   { id: 2, title: "Cải thiện thể chất", icon: "run" },
-  { id: 3, title: "Quản lí hình thể và sức khỏe", icon: "heart" },
+  { id: 3, title: "Quản lý hình thể và sức khỏe", icon: "heart" },
 ];
 
 export default function EditProfileScreen({ navigation, route }) {

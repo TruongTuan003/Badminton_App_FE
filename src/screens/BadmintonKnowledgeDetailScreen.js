@@ -2,7 +2,9 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
+  Dimensions,
   FlatList,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KNOWLEDGE_CONTENT } from '../data/knowledgeContent';
 import { COLORS, FONTS, SHADOWS } from '../styles/commonStyles';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function BadmintonKnowledgeDetailScreen({ navigation, route }) {
   const { categoryId } = route.params || {};
@@ -25,6 +29,18 @@ export default function BadmintonKnowledgeDetailScreen({ navigation, route }) {
         <View style={styles.sectionDot} />
         <Text style={styles.sectionTitle}>{section.title}</Text>
       </View>
+      {section.image && (
+        <View style={styles.sectionImageContainer}>
+          <Image
+            source={{ uri: section.image }}
+            style={styles.sectionImage}
+            resizeMode="cover"
+            onError={(error) => {
+              console.error("Error loading section image:", section.image, error.nativeEvent.error);
+            }}
+          />
+        </View>
+      )}
       {section.items?.map((item, index) => (
         <View key={`${section.title}-${index}`} style={styles.sectionItem}>
           <View style={styles.bullet} />
@@ -58,10 +74,28 @@ export default function BadmintonKnowledgeDetailScreen({ navigation, route }) {
               end={{ x: 1, y: 1 }}
               style={styles.featuredCard}
             >
+              {item.image && (
+                <View style={styles.featuredImageContainer}>
+                  <Image
+                    source={{ uri: item.image }}
+                    style={styles.featuredImage}
+                    resizeMode="cover"
+                    onError={(error) => {
+                      console.error("Error loading featured image:", error.nativeEvent.error);
+                    }}
+                  />
+                </View>
+              )}
               <Text style={styles.featuredName}>{item.name}</Text>
               <Text style={styles.featuredMeta}>{item.country}</Text>
+              {item.achievements && (
+                <Text style={styles.featuredAchievements}>{item.achievements}</Text>
+              )}
               <View style={styles.featuredDivider} />
               <Text style={styles.featuredStrength}>{item.strength}</Text>
+              {item.style && (
+                <Text style={styles.featuredStyle}>{item.style}</Text>
+              )}
             </LinearGradient>
           )}
         />
@@ -90,6 +124,21 @@ export default function BadmintonKnowledgeDetailScreen({ navigation, route }) {
             </TouchableOpacity>
             <Text style={styles.heroBadge}>Chuyên đề</Text>
           </View>
+          {category?.heroImage && (
+            <View style={styles.heroImageContainer}>
+              <Image
+                source={{ uri: category.heroImage }}
+                style={styles.heroImage}
+                resizeMode="cover"
+                onError={(error) => {
+                  console.error("Error loading hero image:", error.nativeEvent.error);
+                }}
+                onLoad={() => {
+                  console.log("Hero image loaded successfully:", category.heroImage);
+                }}
+              />
+            </View>
+          )}
           <Text style={styles.heroTitle}>{category?.title}</Text>
           <Text style={styles.heroSubtitle}>
             {category?.heroSubtitle || 'Nội dung chi tiết'}
@@ -142,6 +191,18 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     padding: 24,
     ...SHADOWS.primaryShadow,
+  },
+  heroImageContainer: {
+    width: '100%',
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
   },
   heroHeader: {
     flexDirection: 'row',
@@ -207,30 +268,57 @@ const styles = StyleSheet.create({
     fontWeight: FONTS.medium,
   },
   featuredCard: {
-    width: 180,
+    width: 200,
     borderRadius: 18,
     padding: 16,
     marginRight: 16,
+  },
+  featuredImageContainer: {
+    width: '100%',
+    height: 120,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  featuredImage: {
+    width: '100%',
+    height: '100%',
   },
   featuredName: {
     fontSize: 16,
     fontWeight: FONTS.bold,
     color: COLORS.black,
+    marginBottom: 4,
   },
   featuredMeta: {
     fontSize: 12,
     color: COLORS.gray,
-    marginTop: 4,
+    marginBottom: 4,
+  },
+  featuredAchievements: {
+    fontSize: 11,
+    color: '#FFD166',
+    fontWeight: FONTS.medium,
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   featuredDivider: {
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.4)',
-    marginVertical: 12,
+    marginVertical: 8,
   },
   featuredStrength: {
     fontSize: 13,
     color: COLORS.black,
-    lineHeight: 18,
+    fontWeight: FONTS.semiBold,
+    marginBottom: 4,
+  },
+  featuredStyle: {
+    fontSize: 12,
+    color: COLORS.gray,
+    lineHeight: 16,
+    fontStyle: 'italic',
   },
   sectionList: {
     paddingHorizontal: 20,
@@ -243,11 +331,24 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
+    marginBottom: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  sectionImageContainer: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+    backgroundColor: '#F7F8F8',
+  },
+  sectionImage: {
+    width: '100%',
+    height: '100%',
   },
   sectionDot: {
     width: 10,

@@ -40,10 +40,12 @@ export default function HomeScreen({ navigation, route }) {
   const [recommendedPlans, setRecommendedPlans] = React.useState([]);
   const [loadingRecommendation, setLoadingRecommendation] = React.useState(false);
   const [activeTrainingPlan, setActiveTrainingPlan] = React.useState(null);
+  const [activeTrainingPlans, setActiveTrainingPlans] = React.useState([]); // Array of active plans
   const [activePlanProgress, setActivePlanProgress] = React.useState({
     completed: 0,
     total: 0,
   });
+  const [activePlansProgress, setActivePlansProgress] = React.useState({}); // Map: planId -> {completed, total}
   const [planProgressLoading, setPlanProgressLoading] = React.useState(false);
   const calculatingProgressRef = React.useRef(false);
   const [knowledgeActiveIndex, setKnowledgeActiveIndex] = React.useState(0);
@@ -156,11 +158,45 @@ export default function HomeScreen({ navigation, route }) {
 
   const loadActivePlan = React.useCallback(async () => {
     try {
-      const stored = await AsyncStorage.getItem("activeTrainingPlan");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setActiveTrainingPlan(parsed);
-        return parsed;
+      // Load activeTrainingPlans (array) - new format
+      const storedPlans = await AsyncStorage.getItem("activeTrainingPlans");
+      let plansArray = [];
+      
+      if (storedPlans) {
+        const parsed = JSON.parse(storedPlans);
+        if (Array.isArray(parsed)) {
+          plansArray = parsed;
+          console.log(`📋 Loaded ${plansArray.length} active training plans from activeTrainingPlans:`, plansArray.map(p => ({ planId: p.planId, name: p.name })));
+        } else if (parsed && typeof parsed === 'object' && parsed.planId) {
+          // Backward compatibility: convert old format to array
+          plansArray = [parsed];
+          console.log(`📋 Converted old format to array: 1 plan - ${parsed.planId}`);
+        }
+      }
+      
+      // Also check old format for backward compatibility
+      if (plansArray.length === 0) {
+        const storedOld = await AsyncStorage.getItem("activeTrainingPlan");
+        if (storedOld) {
+          const parsedOld = JSON.parse(storedOld);
+          if (parsedOld && typeof parsedOld === 'object' && parsedOld.planId) {
+            plansArray = [parsedOld];
+            console.log(`📋 Loaded 1 active training plan from activeTrainingPlan (old format): ${parsedOld.planId}`);
+          }
+        }
+      }
+      
+      if (plansArray.length === 0) {
+        console.log("📋 No active training plans found in AsyncStorage");
+      }
+      
+      setActiveTrainingPlans(plansArray);
+      
+      // Set first plan as activeTrainingPlan for backward compatibility
+      if (plansArray.length > 0) {
+        setActiveTrainingPlan(plansArray[0]);
+        console.log(`📋 Set activeTrainingPlan to first plan: ${plansArray[0].planId}`);
+        return plansArray[0];
       } else {
         setActiveTrainingPlan(null);
         return null;
@@ -168,6 +204,7 @@ export default function HomeScreen({ navigation, route }) {
     } catch (error) {
       console.error("Error loading active training plan:", error);
       setActiveTrainingPlan(null);
+      setActiveTrainingPlans([]);
       return null;
     }
   }, []);
@@ -297,43 +334,36 @@ export default function HomeScreen({ navigation, route }) {
         finalPlans = rejectDailyPlans(levelMatchedPlans);
       }
 
-      if (
-        activeTrainingPlan?.planId &&
-        !finalPlans.some((plan) => plan._id === activeTrainingPlan.planId)
-      ) {
-        try {
-          const planDetail = await trainingPlanAPI.getById(
-            activeTrainingPlan.planId
-          );
-          if (planDetail?.data) {
-            finalPlans = [planDetail.data, ...finalPlans];
-          }
-        } catch (error) {
-          console.error("Error fetching active plan detail:", error);
-        }
-      }
-
-      const slicedPlans = finalPlans.slice(0, 10);
-      if (activeTrainingPlan?.planId) {
-        try {
-          const currentIndex = slicedPlans.findIndex(
-            (plan) => plan._id === activeTrainingPlan.planId
-          );
-          if (currentIndex > 0) {
-            const [activePlan] = slicedPlans.splice(currentIndex, 1);
-            slicedPlans.unshift(activePlan);
-          } else if (currentIndex === -1) {
-            const planDetail = await trainingPlanAPI.getById(
-              activeTrainingPlan.planId
-            );
+      // Thêm tất cả các kế hoạch đang theo dõi vào đầu danh sách
+      const activePlanIds = activeTrainingPlans.map(p => p.planId);
+      const activePlanDetails = [];
+      
+      for (const planData of activeTrainingPlans) {
+        // Nếu kế hoạch chưa có trong finalPlans, fetch chi tiết
+        if (!finalPlans.some((plan) => plan._id === planData.planId)) {
+          try {
+            const planDetail = await trainingPlanAPI.getById(planData.planId);
             if (planDetail?.data) {
-              slicedPlans.unshift(planDetail.data);
+              activePlanDetails.push(planDetail.data);
             }
+          } catch (error) {
+            console.error("Error fetching active plan detail:", error);
           }
-        } catch (error) {
-          console.error("Error ensuring active plan in recommendations:", error);
+        } else {
+          // Nếu đã có, lấy từ finalPlans
+          const existingPlan = finalPlans.find((plan) => plan._id === planData.planId);
+          if (existingPlan) {
+            activePlanDetails.push(existingPlan);
+          }
         }
       }
+      
+      // Thêm các kế hoạch đang theo dõi vào đầu
+      const otherPlans = finalPlans.filter(plan => !activePlanIds.includes(plan._id));
+      finalPlans = [...activePlanDetails, ...otherPlans];
+
+      // Giới hạn 10 kế hoạch
+      const slicedPlans = finalPlans.slice(0, 10);
 
       setRecommendedPlans(slicedPlans);
     } catch (error) {
@@ -342,7 +372,7 @@ export default function HomeScreen({ navigation, route }) {
     } finally {
       setLoadingRecommendation(false);
     }
-  }, [userData, activeTrainingPlan?.planId]);
+  }, [userData, activeTrainingPlans.length, activeTrainingPlan?.planId]);
 
   const calculatePlanProgress = React.useCallback(async (planData = null) => {
     // Tránh gọi nhiều lần đồng thời
@@ -593,26 +623,52 @@ export default function HomeScreen({ navigation, route }) {
 
       const completed = completedWorkouts.size;
       console.log(`🎯 ========== FINAL PROGRESS ==========`);
+      console.log(`🎯 Plan ID: ${plan.planId}`);
       console.log(`🎯 Completed: ${completed}`);
       console.log(`🎯 Total Planned: ${totalPlanned}`);
       console.log(`🎯 Progress: ${completed}/${totalPlanned} completed (${totalPlanned > 0 ? Math.round((completed / totalPlanned) * 100) : 0}%)`);
       console.log(`🎯 Completed workouts keys:`, Array.from(completedWorkouts));
       console.log(`📊 ========== END CALCULATING PLAN PROGRESS ==========`);
 
-      setActivePlanProgress({
+      const progressData = {
         completed,
         total: totalPlanned,
-      });
+      };
+
+      // Lưu vào activePlansProgress map (key là planId)
+      setActivePlansProgress(prev => ({
+        ...prev,
+        [plan.planId]: progressData,
+      }));
+
+      // Backward compatibility: set cho plan đầu tiên
+      if (activeTrainingPlan?.planId === plan.planId) {
+        setActivePlanProgress(progressData);
+      }
     } catch (error) {
       console.error("❌ ========== ERROR CALCULATING PLAN PROGRESS ==========");
       console.error("❌ Error:", error);
       console.error("❌ Error message:", error?.message);
       console.error("❌ Error stack:", error?.stack);
       console.error("❌ Plan data:", plan ? { planId: plan.planId, name: plan.name, workoutMapLength: plan.workoutMap?.length } : "null");
-      setActivePlanProgress({
+      
+      const errorProgress = {
         completed: 0,
         total: totalPlanned,
-      });
+      };
+
+      // Lưu vào activePlansProgress map
+      if (plan?.planId) {
+        setActivePlansProgress(prev => ({
+          ...prev,
+          [plan.planId]: errorProgress,
+        }));
+      }
+
+      // Backward compatibility
+      if (activeTrainingPlan?.planId === plan?.planId) {
+        setActivePlanProgress(errorProgress);
+      }
     } finally {
       setPlanProgressLoading(false);
       calculatingProgressRef.current = false;
@@ -654,7 +710,39 @@ export default function HomeScreen({ navigation, route }) {
     ])
   );
 
-  // Tính lại tiến độ khi activeTrainingPlan thay đổi (bao gồm khi load từ AsyncStorage)
+  // Tính lại tiến độ cho tất cả kế hoạch trong activeTrainingPlans
+  React.useEffect(() => {
+    if (activeTrainingPlans.length > 0) {
+      // Chờ một chút để đảm bảo các API call khác đã hoàn thành
+      const timer = setTimeout(async () => {
+        console.log(`🔄 Calculating progress for ${activeTrainingPlans.length} active plans:`, activeTrainingPlans.map(p => ({ planId: p.planId, name: p.name })));
+        setPlanProgressLoading(true);
+        
+        // Tính tiến độ cho từng kế hoạch (tuần tự để tránh conflict)
+        for (const planData of activeTrainingPlans) {
+          console.log(`📊 Starting progress calculation for plan: ${planData.planId} - ${planData.name}`);
+          // Reset flag trước khi tính để không bị skip
+          calculatingProgressRef.current = false;
+          await calculatePlanProgress(planData);
+          // Reset flag sau khi tính xong
+          calculatingProgressRef.current = false;
+          // Chờ một chút giữa các lần tính
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        console.log(`✅ Finished calculating progress for all ${activeTrainingPlans.length} plans`);
+        setPlanProgressLoading(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setActivePlanProgress({ completed: 0, total: 0 });
+      setActivePlansProgress({});
+      setPlanProgressLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTrainingPlans]);
+
+  // Tính lại tiến độ khi activeTrainingPlan thay đổi (backward compatibility)
   React.useEffect(() => {
     if (activeTrainingPlan) {
       // Chờ một chút để đảm bảo các API call khác đã hoàn thành
@@ -891,9 +979,12 @@ export default function HomeScreen({ navigation, route }) {
               style={styles.recommendedScrollView}
             >
               {recommendedPlans.map((plan) => {
-                const isActivePlan = activeTrainingPlan?.planId === plan._id;
-                const totalProgress = activePlanProgress.total || activeTrainingPlan?.totalWorkouts || 0;
-                const completedProgress = isActivePlan ? activePlanProgress.completed : 0;
+                // Tìm kế hoạch trong activeTrainingPlans
+                const activePlanData = activeTrainingPlans.find(p => p.planId === plan._id);
+                const isActivePlan = !!activePlanData;
+                const planProgress = activePlansProgress[plan._id] || { completed: 0, total: 0 };
+                const totalProgress = planProgress.total || activePlanData?.totalWorkouts || 0;
+                const completedProgress = isActivePlan ? planProgress.completed : 0;
                 const progressPercent =
                   isActivePlan && totalProgress > 0
                     ? Math.round((completedProgress / totalProgress) * 100)
@@ -907,7 +998,7 @@ export default function HomeScreen({ navigation, route }) {
                       navigation.navigate("TrainingPlanDetail", {
                         plan,
                         isActive: isActivePlan,
-                        startDate: isActivePlan ? activeTrainingPlan?.startDate : null,
+                        startDate: isActivePlan ? activePlanData?.startDate : null,
                       })
                     }
                   >

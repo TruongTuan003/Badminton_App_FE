@@ -101,12 +101,13 @@ export default function BadmintonSurveyScreen({ navigation, route }) {
         await AsyncStorage.setItem('token', response.data.token);
       }
       
-      // Xóa activeTrainingPlan để đảm bảo không có plan nào được gán sẵn cho người dùng mới
+      // Xóa activeTrainingPlan và activeTrainingPlans để đảm bảo không có plan nào được gán sẵn cho người dùng mới
       try {
         await AsyncStorage.removeItem('activeTrainingPlan');
-        console.log('✅ Cleared activeTrainingPlan for new user');
+        await AsyncStorage.removeItem('activeTrainingPlans');
+        console.log('✅ Cleared activeTrainingPlan and activeTrainingPlans for new user');
       } catch (error) {
-        console.error('Error clearing activeTrainingPlan:', error);
+        console.error('Error clearing active training plans:', error);
       }
       
       const completeData = {

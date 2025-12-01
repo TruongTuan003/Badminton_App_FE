@@ -368,47 +368,328 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
     }
   };
 
-  const confirmApplyPlan = async () => {
-    // Kiểm tra xem có schedule trong các ngày này chưa
-    const hasExisting = await checkExistingSchedules();
-    
-    if (hasExisting) {
-      // Nếu đã có schedule, hiển thị Alert để chọn "Thêm vào" hoặc "Ghi đè"
-      Alert.alert(
-        "Xác nhận",
-        "Nếu đã có lịch tập trong các ngày này, bạn muốn:\n\n" +
-        "• Thêm vào lịch cũ (giữ bài tập cũ)\n" +
-        "• Ghi đè lịch cũ (xóa bài tập cũ)",
-        [
-          {
-            text: "Hủy",
-            style: "cancel",
-            onPress: () => setShowCalendar(false)
-          },
-          {
-            text: "Thêm vào",
-            onPress: () => handleApplyPlan(false)
-          },
-          {
-            text: "Ghi đè",
-            onPress: () => handleApplyPlan(true),
-            style: "destructive"
-          }
-        ]
-      );
-    } else {
-      // Nếu chưa có schedule, thêm vào luôn không cần hỏi
-      handleApplyPlan(false);
+  // Load danh sách kế hoạch đang theo dõi từ AsyncStorage
+  const loadActivePlans = async () => {
+    try {
+      const stored = await AsyncStorage.getItem("activeTrainingPlans");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Nếu là array, trả về array
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+        // Nếu là object cũ, chuyển sang array
+        if (parsed && typeof parsed === 'object' && parsed.planId) {
+          return [parsed];
+        }
+      }
+      return [];
+    } catch (error) {
+      console.error("Error loading active plans:", error);
+      return [];
     }
   };
 
-  const handleApplyPlan = async (replaceExisting = false) => {
+  // Lưu danh sách kế hoạch vào AsyncStorage
+  const saveActivePlans = async (plansArray) => {
+    try {
+      await AsyncStorage.setItem("activeTrainingPlans", JSON.stringify(plansArray));
+      console.log("✅ Saved active plans:", plansArray.length);
+    } catch (error) {
+      console.error("Failed to store active training plans:", error);
+    }
+  };
+
+  // Hàm normalize goal để so sánh
+  const normalizeGoal = (goal) => {
+    if (!goal) return "";
+    if (typeof goal === "string") {
+      return goal.toLowerCase().trim();
+    }
+    if (Array.isArray(goal)) {
+      return goal.map(g => typeof g === "string" ? g.toLowerCase().trim() : (g?.title || "").toLowerCase().trim()).filter(Boolean).sort().join(",");
+    }
+    if (goal?.title) {
+      return goal.title.toLowerCase().trim();
+    }
+    return String(goal).toLowerCase().trim();
+  };
+
+  // Hàm format goal để hiển thị (lấy goal đầu tiên nếu là array)
+  const formatGoalForDisplay = (goal) => {
+    if (!goal) return "không có mục tiêu";
+    if (typeof goal === "string") {
+      return goal;
+    }
+    if (Array.isArray(goal)) {
+      return goal.length > 0 ? (typeof goal[0] === "string" ? goal[0] : goal[0]?.title || "không có mục tiêu") : "không có mục tiêu";
+    }
+    if (goal?.title) {
+      return goal.title;
+    }
+    return String(goal);
+  };
+
+  // Kiểm tra xem kế hoạch có cùng goal với kế hoạch nào trong danh sách không
+  const checkDuplicateGoal = (newPlanGoal, existingPlans) => {
+    const normalizedNewGoal = normalizeGoal(newPlanGoal);
+    console.log("🔍 Checking duplicate goal:", { 
+      newGoal: newPlanGoal, 
+      normalizedNewGoal 
+    });
+    
+    if (!normalizedNewGoal) {
+      console.log("⚠️ New plan goal is empty, skipping duplicate check");
+      return null;
+    }
+
+    for (const existingPlan of existingPlans) {
+      const normalizedExistingGoal = normalizeGoal(existingPlan.goal);
+      console.log("🔍 Comparing with existing plan:", {
+        planId: existingPlan.planId,
+        planGoal: existingPlan.goal,
+        normalizedExistingGoal,
+        match: normalizedNewGoal === normalizedExistingGoal
+      });
+      
+      if (normalizedExistingGoal && normalizedNewGoal === normalizedExistingGoal) {
+        console.log(`⚠️ Found duplicate goal! Plan ${existingPlan.planId} has same goal: ${normalizedExistingGoal}`);
+        return existingPlan;
+      }
+    }
+    
+    console.log("✅ No duplicate goal found");
+    return null;
+  };
+
+  const confirmApplyPlan = async () => {
+    // Load danh sách kế hoạch hiện tại
+    const currentPlans = await loadActivePlans();
+    const currentPlanCount = currentPlans.length;
+    const isPlanAlreadyActive = currentPlans.some(p => p.planId === plan._id);
+    
+    // Kiểm tra xem có schedule trong các ngày này chưa
+    const hasExisting = await checkExistingSchedules();
+    
+    // Kiểm tra xem kế hoạch mới có cùng goal với kế hoạch nào không
+    const duplicateGoalPlan = !isPlanAlreadyActive ? checkDuplicateGoal(plan.goal, currentPlans) : null;
+    
+    // Nếu không có lịch và không có vấn đề gì → áp dụng luôn
+    if (!hasExisting && !duplicateGoalPlan && currentPlanCount < 2 && !isPlanAlreadyActive) {
+      console.log("✅ No existing schedule and no conflicts, applying plan directly...");
+      handleApplyPlan(false, false); // replaceExisting=false, shouldAddToPlans=true
+      return;
+    }
+    
+    // Nếu có lịch hoặc có vấn đề → hiển thị Alert để chọn
+    let message = "Bạn muốn:\n\n";
+    
+    if (isPlanAlreadyActive) {
+      message += "⚠️ Kế hoạch này đang được theo dõi.\n\n";
+      message += "• Thêm vào: Giữ kế hoạch cũ và thêm bài tập mới\n";
+      message += "• Ghi đè: Xóa kế hoạch cũ và thêm kế hoạch mới";
+    } else if (duplicateGoalPlan) {
+      const goalDisplay = formatGoalForDisplay(duplicateGoalPlan.goal || plan.goal);
+      message += `⚠️ Bạn đã có kế hoạch của mục tiêu "${goalDisplay}" rồi.\n\n`;
+      message += "• Thêm vào: Không thể thêm (đã có kế hoạch cùng mục tiêu)\n";
+      message += "• Ghi đè: Xóa kế hoạch cũ cùng mục tiêu và thêm kế hoạch mới";
+    } else if (currentPlanCount >= 2) {
+      message += "⚠️ Bạn đã theo dõi 2 kế hoạch (tối đa 2).\n\n";
+      message += "• Thêm vào: Không thể thêm (đã đủ 2 kế hoạch)\n";
+      message += "• Ghi đè: Xóa kế hoạch cũ và thêm kế hoạch mới";
+    } else if (hasExisting) {
+      message += "⚠️ Đã có lịch tập trong khoảng thời gian này.\n\n";
+      message += "• Thêm vào: Thêm bài tập mới vào lịch hiện có (giữ bài tập cũ)\n";
+      message += "• Ghi đè: Xóa bài tập cũ và thêm bài tập mới";
+    } else {
+      message += "• Thêm vào: Thêm kế hoạch mới vào danh sách (giữ kế hoạch cũ)\n";
+      message += "• Ghi đè: Xóa kế hoạch cũ và thêm kế hoạch mới";
+    }
+    
+    Alert.alert(
+      "Chọn phương thức áp dụng",
+      message,
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+          onPress: () => setShowCalendar(false)
+        },
+        {
+          text: "Thêm vào",
+          onPress: () => {
+            // Kiểm tra cùng goal
+            if (duplicateGoalPlan) {
+              const goalDisplay = formatGoalForDisplay(duplicateGoalPlan.goal || plan.goal);
+              Alert.alert(
+                "Không thể thêm",
+                `Bạn đã có kế hoạch của mục tiêu "${goalDisplay}" rồi.\n\n` +
+                "Vui lòng chọn 'Ghi đè' để thay thế kế hoạch cũ cùng mục tiêu.",
+                [{ text: "OK" }]
+              );
+              setShowCalendar(false);
+              return;
+            }
+            
+            // Kiểm tra đủ 2 kế hoạch
+            if (currentPlanCount >= 2 && !isPlanAlreadyActive) {
+              Alert.alert(
+                "Không thể thêm",
+                "Bạn đã theo dõi 2 kế hoạch (tối đa 2).\nVui lòng chọn 'Ghi đè' để thay thế một kế hoạch cũ.",
+                [{ text: "OK" }]
+              );
+              setShowCalendar(false);
+            } else {
+              handleApplyPlan(false, false); // replaceExisting=false, shouldAddToPlans=true
+            }
+          }
+        },
+        {
+          text: "Ghi đè",
+          onPress: () => {
+            // Nếu có kế hoạch cùng goal, ghi đè kế hoạch đó
+            if (duplicateGoalPlan) {
+              handleApplyPlan(true, true, duplicateGoalPlan.planId); // replaceExisting=true, shouldReplacePlans=true, replacePlanId
+            } else {
+              handleApplyPlan(true, true); // replaceExisting=true, shouldReplacePlans=true
+            }
+          },
+          style: "destructive"
+        }
+      ]
+    );
+  };
+
+  // Hàm xóa lịch của plan cũ (chỉ xóa workouts của plan đó)
+  const deleteOldPlanSchedule = async (oldPlan) => {
+    if (!oldPlan || !oldPlan.workoutMap || !oldPlan.startDate) {
+      console.log("⚠️ No old plan data to delete schedule");
+      return;
+    }
+
+    try {
+      console.log("🗑️ Deleting schedule for old plan:", oldPlan.planId, "Start date:", oldPlan.startDate);
+      
+      // Tính toán khoảng thời gian của plan cũ
+      const startDate = new Date(oldPlan.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      
+      let endDate = new Date(startDate);
+      if (oldPlan.type === "daily") {
+        endDate = new Date(startDate);
+      } else if (oldPlan.type === "weekly") {
+        endDate.setDate(startDate.getDate() + 6);
+      } else if (oldPlan.type === "monthly") {
+        endDate.setDate(startDate.getDate() + 29);
+      }
+      endDate.setHours(23, 59, 59, 999);
+
+      // Lấy tất cả workoutIds của plan cũ
+      const oldPlanWorkoutIds = new Set();
+      oldPlan.workoutMap.forEach((entry) => {
+        (entry.workoutIds || []).forEach((wId) => {
+          if (wId) {
+            const normalizedId = typeof wId === "string" ? wId.trim() : String(wId?._id || wId).trim();
+            if (normalizedId) oldPlanWorkoutIds.add(normalizedId);
+          }
+        });
+      });
+
+      console.log(`📋 Old plan has ${oldPlanWorkoutIds.size} unique workouts to delete`);
+
+      // Lấy tất cả dates trong khoảng thời gian của plan cũ
+      const datesToCheck = [];
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+        const day = String(currentDate.getDate()).padStart(2, "0");
+        datesToCheck.push(`${year}-${month}-${day}`);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      console.log(`📅 Checking ${datesToCheck.length} dates for old plan schedule deletion`);
+
+      // Xóa workouts của plan cũ trong từng ngày
+      let deletedCount = 0;
+      for (const dateStr of datesToCheck) {
+        try {
+          const scheduleRes = await scheduleAPI.getByDate(dateStr);
+          const schedule = scheduleRes.data?.schedule;
+          
+          if (schedule && schedule._id) {
+            const details = scheduleRes.data?.details || [];
+            
+            // Tìm các details có workoutId thuộc plan cũ
+            const detailsToDelete = details.filter((detail) => {
+              const detailWorkoutId = typeof detail.workoutId === "string" 
+                ? detail.workoutId.trim() 
+                : String(detail.workoutId?._id || detail.workoutId).trim();
+              return oldPlanWorkoutIds.has(detailWorkoutId);
+            });
+
+            // Xóa từng workout
+            for (const detail of detailsToDelete) {
+              try {
+                const workoutId = typeof detail.workoutId === "string" 
+                  ? detail.workoutId 
+                  : detail.workoutId?._id || detail.workoutId;
+                await scheduleAPI.removeWorkout(schedule._id, workoutId);
+                deletedCount++;
+                console.log(`  ✅ Deleted workout ${workoutId} from date ${dateStr}`);
+              } catch (err) {
+                console.error(`  ❌ Error deleting workout from ${dateStr}:`, err);
+              }
+            }
+          }
+        } catch (err) {
+          if (err.response?.status !== 404) {
+            console.error(`❌ Error checking schedule for ${dateStr}:`, err);
+          }
+        }
+      }
+
+      console.log(`✅ Deleted ${deletedCount} workouts from old plan schedule`);
+    } catch (error) {
+      console.error("❌ Error deleting old plan schedule:", error);
+      // Không throw error để không chặn việc apply plan mới
+    }
+  };
+
+  const handleApplyPlan = async (replaceExisting = false, shouldReplacePlans = false, replacePlanId = null) => {
     try {
       setApplying(true);
       
-      console.log("📋 Applying plan:", plan._id, "Start date:", selectedDate, "Replace:", replaceExisting);
+      console.log("📋 Applying plan:", plan._id, "Start date:", selectedDate, "Replace schedule:", replaceExisting, "Replace plans:", shouldReplacePlans, "Replace plan ID:", replacePlanId);
       
-      const response = await trainingPlanAPI.applyPlan(plan._id, selectedDate, replaceExisting);
+      // Load danh sách kế hoạch hiện tại
+      let currentPlans = await loadActivePlans();
+      const isPlanAlreadyActive = currentPlans.some(p => p.planId === plan._id);
+      
+      // Kiểm tra nếu thêm vào nhưng đã đủ 2 kế hoạch và kế hoạch này chưa có
+      if (!shouldReplacePlans && !isPlanAlreadyActive && currentPlans.length >= 2) {
+        Alert.alert(
+          "Không thể thêm",
+          "Bạn đã theo dõi 2 kế hoạch (tối đa 2).\nVui lòng chọn 'Ghi đè' để thay thế một kế hoạch cũ."
+        );
+        setApplying(false);
+        setShowCalendar(false);
+        return;
+      }
+
+      // Nếu có replacePlanId (ghi đè plan trùng mục tiêu), xóa lịch của plan cũ trước
+      let shouldReplaceSchedule = replaceExisting;
+      if (replacePlanId) {
+        const oldPlan = currentPlans.find(p => p.planId === replacePlanId);
+        if (oldPlan) {
+          console.log("🗑️ Found old plan to delete schedule:", oldPlan.planId);
+          await deleteOldPlanSchedule(oldPlan);
+          // Sau khi xóa lịch của plan cũ, không cần replaceExisting nữa
+          shouldReplaceSchedule = false;
+        }
+      }
+      
+      const response = await trainingPlanAPI.applyPlan(plan._id, selectedDate, shouldReplaceSchedule);
       
       console.log("✅ Apply response:", response.data);
 
@@ -416,7 +697,7 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
       const totalPlanWorkouts =
         workoutMap.reduce((sum, entry) => sum + entry.workoutIds.length, 0) || 0;
 
-      const activePlanPayload = {
+      const newPlanPayload = {
         planId: plan._id,
         name: plan.name,
         type: plan.type,
@@ -429,13 +710,55 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
         updatedAt: new Date().toISOString(),
       };
 
-      try {
-        await AsyncStorage.setItem(
-          "activeTrainingPlan",
-          JSON.stringify(activePlanPayload)
-        );
-      } catch (storageError) {
-        console.error("Failed to store active training plan:", storageError);
+      // Xử lý danh sách kế hoạch
+      let updatedPlans = [];
+      
+      if (shouldReplacePlans) {
+        // Ghi đè: Xóa kế hoạch cũ
+        if (replacePlanId) {
+          // Xóa kế hoạch có cùng goal (được chỉ định bởi replacePlanId)
+          updatedPlans = currentPlans.filter(p => p.planId !== replacePlanId);
+          updatedPlans.push(newPlanPayload);
+          console.log(`🔄 Replaced plan ${replacePlanId} (same goal). New count:`, updatedPlans.length);
+        } else if (isPlanAlreadyActive) {
+          // Xóa kế hoạch cùng planId và thêm lại với startDate mới
+          updatedPlans = currentPlans.filter(p => p.planId !== plan._id);
+          updatedPlans.push(newPlanPayload);
+          console.log("🔄 Replaced same plan. New count:", updatedPlans.length);
+        } else {
+          // Xóa kế hoạch đầu tiên và thêm kế hoạch mới
+          updatedPlans = currentPlans.slice(1);
+          updatedPlans.push(newPlanPayload);
+          console.log("🔄 Replaced first plan. New count:", updatedPlans.length);
+        }
+      } else {
+        // Thêm vào: Thêm kế hoạch mới vào danh sách
+        if (isPlanAlreadyActive) {
+          // Nếu kế hoạch đã có, cập nhật lại với startDate mới
+          updatedPlans = currentPlans.map(p => 
+            p.planId === plan._id ? newPlanPayload : p
+          );
+          console.log("🔄 Updated existing plan in list");
+        } else {
+          // Thêm kế hoạch mới vào
+          updatedPlans = [...currentPlans, newPlanPayload];
+          console.log("➕ Added new plan to list. Total:", updatedPlans.length);
+        }
+      }
+      
+      // Lưu danh sách kế hoạch vào AsyncStorage
+      await saveActivePlans(updatedPlans);
+      
+      // Cũng lưu kế hoạch đầu tiên vào activeTrainingPlan để backward compatibility
+      if (updatedPlans.length > 0) {
+        try {
+          await AsyncStorage.setItem(
+            "activeTrainingPlan",
+            JSON.stringify(updatedPlans[0])
+          );
+        } catch (storageError) {
+          console.error("Failed to store active training plan (backward compat):", storageError);
+        }
       }
       
       const { datesProcessed, totalWorkouts } = response.data;
@@ -457,16 +780,17 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
           ]
         );
       } else {
+        const actionText = shouldReplacePlans ? "Ghi đè" : "Thêm vào";
         Alert.alert(
           "Thành công",
-          `Đã áp dụng kế hoạch "${plan.name}" vào lịch tập của bạn!\n\n` +
+          `Đã ${actionText.toLowerCase()} kế hoạch "${plan.name}"!\n\n` +
           `📅 Đã xử lý ${datesProcessed} ngày\n` +
-          `💪 Đã thêm ${totalWorkouts} bài tập`,
+          `💪 Đã thêm ${totalWorkouts} bài tập\n` +
+          `📋 Đang theo dõi ${updatedPlans.length}/2 kế hoạch`,
           [
             {
               text: "Xem lịch",
               onPress: () => {
-                // Navigate và truyền tham số để refresh
                 navigation.navigate("Schedule", { 
                   refresh: true,
                   selectedDate: selectedDate 
@@ -475,7 +799,8 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
             },
             {
               text: "OK",
-              style: "cancel"
+              style: "cancel",
+              onPress: () => navigation.goBack()
             }
           ]
         );

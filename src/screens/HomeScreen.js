@@ -215,7 +215,37 @@ export default function HomeScreen({ navigation, route }) {
     
     try {
       setLoadingRecommendation(true);
-  const { badmintonLevel, goal } = userData;
+      
+      // ✅ Load lại activeTrainingPlans từ AsyncStorage để đảm bảo có dữ liệu mới nhất
+      let currentActivePlans = [];
+      try {
+        const storedPlans = await AsyncStorage.getItem("activeTrainingPlans");
+        if (storedPlans) {
+          const parsed = JSON.parse(storedPlans);
+          if (Array.isArray(parsed)) {
+            currentActivePlans = parsed;
+          } else if (parsed && typeof parsed === 'object' && parsed.planId) {
+            currentActivePlans = [parsed];
+          }
+        }
+        // Also check old format for backward compatibility
+        if (currentActivePlans.length === 0) {
+          const storedOld = await AsyncStorage.getItem("activeTrainingPlan");
+          if (storedOld) {
+            const parsedOld = JSON.parse(storedOld);
+            if (parsedOld && typeof parsedOld === 'object' && parsedOld.planId) {
+              currentActivePlans = [parsedOld];
+            }
+          }
+        }
+        console.log(`📋 fetchRecommendedPlan: Loaded ${currentActivePlans.length} active plans from AsyncStorage`);
+      } catch (storageError) {
+        console.error("Error loading active plans in fetchRecommendedPlan:", storageError);
+        // Fallback to state
+        currentActivePlans = activeTrainingPlans;
+      }
+      
+      const { badmintonLevel, goal } = userData;
       const userGoals = (Array.isArray(goal) ? goal : [goal]).filter(Boolean);
       
       // Chỉ fetch nếu có dữ liệu khảo sát
@@ -334,11 +364,11 @@ export default function HomeScreen({ navigation, route }) {
         finalPlans = rejectDailyPlans(levelMatchedPlans);
       }
 
-      // Thêm tất cả các kế hoạch đang theo dõi vào đầu danh sách
-      const activePlanIds = activeTrainingPlans.map(p => p.planId);
+      // ✅ Sử dụng currentActivePlans (đã load từ AsyncStorage) thay vì activeTrainingPlans từ closure
+      const activePlanIds = currentActivePlans.map(p => p.planId);
       const activePlanDetails = [];
       
-      for (const planData of activeTrainingPlans) {
+      for (const planData of currentActivePlans) {
         // Nếu kế hoạch chưa có trong finalPlans, fetch chi tiết
         if (!finalPlans.some((plan) => plan._id === planData.planId)) {
           try {
@@ -683,13 +713,15 @@ export default function HomeScreen({ navigation, route }) {
     fetchTrainingLogs();
   }, [fetchTodayMeals, fetchTodaySchedule, fetchTrainingLogs]);
 
+  // ✅ Load active plans trước, sau đó mới fetch recommended plans
   React.useEffect(() => {
-    loadActivePlan();
-  }, [loadActivePlan]);
-
-  React.useEffect(() => {
-    fetchRecommendedPlan();
-  }, [fetchRecommendedPlan]);
+    const initializePlans = async () => {
+      await loadActivePlan();
+      // fetchRecommendedPlan sẽ tự load lại từ AsyncStorage, không cần chờ
+      fetchRecommendedPlan();
+    };
+    initializePlans();
+  }, [loadActivePlan, fetchRecommendedPlan]);
 
   // Track lần cuối cùng tính tiến độ để tránh tính quá nhiều lần
   const lastProgressCalculationRef = React.useRef(Date.now());
@@ -697,16 +729,22 @@ export default function HomeScreen({ navigation, route }) {
   useFocusEffect(
     React.useCallback(() => {
       // Tự động refresh khi màn hình lấy focus
-      fetchTodayMeals();
-      fetchTodaySchedule();
-      fetchTrainingLogs();
-      loadActivePlan();
+      const refreshData = async () => {
+        fetchTodayMeals();
+        fetchTodaySchedule();
+        fetchTrainingLogs();
+        await loadActivePlan();
+        // fetchRecommendedPlan sẽ tự load lại từ AsyncStorage, không cần chờ
+        fetchRecommendedPlan();
+      };
+      refreshData();
       return undefined;
     }, [
       fetchTodayMeals,
       fetchTodaySchedule,
       fetchTrainingLogs,
       loadActivePlan,
+      fetchRecommendedPlan,
     ])
   );
 

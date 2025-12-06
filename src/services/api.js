@@ -12,8 +12,8 @@ import axios from 'axios';
 //    - Mac/Linux: mở Terminal và gõ "ifconfig" hoặc "ip addr"
 // 2. Thay đổi IP bên dưới thành IP của bạn
 
-// const API_URL = 'http://192.168.1.19:3000/api';  // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
-const API_URL = 'https://badminton-app-be.onrender.com/api';  // Uncomment này để dùng production 
+const API_URL = 'http://192.168.1.142:3000/api';  // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
+// const API_URL = 'https://badminton-app-be.onrender.com/api';  // Uncomment này để dùng production 
 
 const api = axios.create({
   baseURL: API_URL,
@@ -111,6 +111,21 @@ export const trainingPlanAPI = {
   getByGoal: (goal) => api.get(`/training-plans/goal/${encodeURIComponent(goal)}`),
   applyPlan: (planId, startDate, replaceExisting = false) => 
     api.post('/training-plans/apply', { planId, startDate, replaceExisting }),
+};
+
+// API cho Python AI Recommendation Server (port 5000)
+const PYTHON_API_URL = 'http://192.168.1.142:5000'; // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
+// const PYTHON_API_URL = 'http://localhost:5000'; // Cho local development
+
+const pythonApi = axios.create({
+  baseURL: PYTHON_API_URL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 120000, // 2 phút cho AI generation
+});
+
+export const aiRecommendationAPI = {
+  // Gọi API Python để tạo lộ trình tập luyện
+  generateTrainingPlan: (userId) => pythonApi.get(`/recommend/training-plan/${userId}`),
 };
 
 export default api;

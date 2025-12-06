@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import Markdown from "react-native-markdown-display";
 
-export default function ChatBotAI({ isOpen: externalIsOpen, onToggle: externalOnToggle }) {
+export default function ChatBotAI({ isOpen: externalIsOpen, onToggle: externalOnToggle, userId }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -102,8 +102,9 @@ export default function ChatBotAI({ isOpen: externalIsOpen, onToggle: externalOn
     setIsLoading(true);
 
     try {
-      const res = await api.post("/chat", {
+      const res = await api.post("http://192.168.1.142:5000/chat", {
         message: userMessage.content,
+        userId: userId,
       });
 
       const aiMessage = {
@@ -253,7 +254,7 @@ export default function ChatBotAI({ isOpen: externalIsOpen, onToggle: externalOn
             },
           ]}
         >
-          <Text style={styles.helperText}>Chat với Gemini AI</Text>
+          <Text style={styles.helperText}>Trợ lí ảo Bad2Pro</Text>
           <TouchableOpacity style={styles.helperClose} onPress={dismissHint}>
             <Text style={styles.helperCloseText}>×</Text>
           </TouchableOpacity>
@@ -294,7 +295,7 @@ export default function ChatBotAI({ isOpen: externalIsOpen, onToggle: externalOn
           >
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Chat với Gemini AI</Text>
+              <Text style={styles.headerTitle}>Trợ lí ảo Bad2Pro</Text>
               <View style={styles.headerActions}>
                 <TouchableOpacity onPress={clearChat} style={styles.headerButton}>
                   <Trash size={22} color="#000" />
@@ -316,7 +317,7 @@ export default function ChatBotAI({ isOpen: externalIsOpen, onToggle: externalOn
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyText}>Xin chào 👋</Text>
                   <Text style={styles.emptySubtext}>
-                    Mình là Gemini AI — hỏi mình bất cứ điều gì bạn muốn nhé!
+                    Mình là trợ lí ảo Bad2Pro — hỏi mình bất cứ điều gì bạn muốn nhé!
                   </Text>
                 </View>
               ) : (

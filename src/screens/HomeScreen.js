@@ -29,6 +29,9 @@ export default function HomeScreen({ navigation, route }) {
   const [userData, setUserData] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState("home");
   const [isChatBotOpen, setIsChatBotOpen] = React.useState(false);
+  const handleToggleChatBot = React.useCallback((newValue) => {
+    setIsChatBotOpen(newValue);
+  }, []);
   const [todaySchedule, setTodaySchedule] = React.useState(null);
   const [todayMeals, setTodayMeals] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
@@ -1488,7 +1491,7 @@ export default function HomeScreen({ navigation, route }) {
           </View>
         </LinearGradient>
       </ScrollView>
-      <ChatBotAI isOpen={isChatBotOpen} onToggle={setIsChatBotOpen} />
+      <ChatBotAI isOpen={isChatBotOpen} onToggle={handleToggleChatBot} userId={userData?.id} />
       <View style={styles.bottomNav}>
         <TouchableOpacity
           style={styles.navItem}

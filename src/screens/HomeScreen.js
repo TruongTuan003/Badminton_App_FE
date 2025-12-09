@@ -23,7 +23,7 @@ import { FONTS } from "../styles/commonStyles";
 import { calculateBMI } from "../utils/bmiCalculator";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
-const DEFAULT_NEARBY_COORDS = { latitude: 10.7972387, longitude: 106.6824758 }; // 2025-12-09 12:42:48 - fallback HCM if geolocation fails
+const DEFAULT_NEARBY_COORDS = { latitude: 10.8221589, longitude: 106.6842651 }; // 2025-12-09 12:42:48 - fallback HCM if geolocation fails
 
 export default function HomeScreen({ navigation, route }) {
   // Lấy thông tin người dùng từ API

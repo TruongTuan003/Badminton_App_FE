@@ -364,7 +364,7 @@ export const KNOWLEDGE_CONTENT = [
   {
     id: 'venues',
     title: 'Sân cầu lông nội thành TP.HCM',
-    heroSubtitle: 'Địa điểm tập luyện và thi đấu uy tín - Cập nhật tháng 12/2025',
+    heroSubtitle: 'Địa điểm tập luyện và thi đấu uy tín',
     gradient: ['#E8F5E9', '#C8E6C9'],
     icon: 'map-pin',
     color: '#4CAF50',

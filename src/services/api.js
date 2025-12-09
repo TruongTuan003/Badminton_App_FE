@@ -12,7 +12,9 @@ import axios from 'axios';
 //    - Mac/Linux: mở Terminal và gõ "ifconfig" hoặc "ip addr"
 // 2. Thay đổi IP bên dưới thành IP của bạn
 
-const API_URL = 'http://192.168.1.142:3000/api';  // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
+const API_URL = 'https://bad2pro.site/api';  // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
+// const API_URL = 'https://badminton-app-be.xyz/api';  // Uncomment này để dùng production 
+// const API_URL = 'http://192.168.1.142:3000/api';  // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
 // const API_URL = 'https://badminton-app-be.onrender.com/api';  // Uncomment này để dùng production 
 
 const api = axios.create({
@@ -114,7 +116,7 @@ export const trainingPlanAPI = {
 };
 
 // API cho Python AI Recommendation Server (port 5000)
-const PYTHON_API_URL = 'http://192.168.1.142:5000'; // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
+const PYTHON_API_URL = 'https://ai-recommendation-gnb2.onrender.com'; // ⚠️ THAY ĐỔI IP NÀY THÀNH IP CỦA MÁY BẠN
 // const PYTHON_API_URL = 'http://localhost:5000'; // Cho local development
 
 const pythonApi = axios.create({
@@ -126,6 +128,9 @@ const pythonApi = axios.create({
 export const aiRecommendationAPI = {
   // Gọi API Python để tạo lộ trình tập luyện
   generateTrainingPlan: (userId) => pythonApi.get(`/recommend/training-plan/${userId}`),
+  // 2025-12-09 12:25:26 - Gợi ý sân cầu lông gần người dùng
+  getNearbyCourts: (latitude, longitude) =>
+    pythonApi.post('/api/nearby-courts', { latitude, longitude }),
 };
 
 export default api;

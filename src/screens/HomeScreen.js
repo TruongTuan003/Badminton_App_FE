@@ -18,11 +18,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ChatBotAI from "../components/ChatBotAI";
 import KnowledgeHighlightCard from "../components/KnowledgeHighlightCard";
 import { KNOWLEDGE_CONTENT } from "../data/knowledgeContent";
-import { mealScheduleAPI, scheduleAPI, trainingLogAPI, trainingPlanAPI, userAPI } from "../services/api";
+import { aiRecommendationAPI, mealScheduleAPI, scheduleAPI, trainingLogAPI, trainingPlanAPI, userAPI } from "../services/api";
 import { FONTS } from "../styles/commonStyles";
 import { calculateBMI } from "../utils/bmiCalculator";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+const DEFAULT_NEARBY_COORDS = { latitude: 10.7972387, longitude: 106.6824758 }; // 2025-12-09 12:42:48 - fallback HCM if geolocation fails
 
 export default function HomeScreen({ navigation, route }) {
   // Lấy thông tin người dùng từ API
@@ -36,6 +37,9 @@ export default function HomeScreen({ navigation, route }) {
   const [todayMeals, setTodayMeals] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [trainingLogs, setTrainingLogs] = React.useState([]);
+  const [nearbyCourts, setNearbyCourts] = React.useState([]);
+  const [loadingNearbyCourts, setLoadingNearbyCourts] = React.useState(false);
+  const [nearbyCourtsError, setNearbyCourtsError] = React.useState("");
   const [mealSummary, setMealSummary] = React.useState({
     calories: 0,
     mealType: "",
@@ -158,6 +162,62 @@ export default function HomeScreen({ navigation, route }) {
       setTrainingLogs([]);
     }
   }, []);
+
+  const fetchNearbyCourts = React.useCallback(() => {
+    // 2025-12-09 12:34:12 - Lấy vị trí, fallback HCM, và mở danh sách 5 sân gần nhất
+    setLoadingNearbyCourts(true);
+    setNearbyCourtsError("");
+    setNearbyCourts([]);
+
+    const fetchWithCoords = async (coords, isFallback = false) => {
+      try {
+        const res = await aiRecommendationAPI.getNearbyCourts(
+          coords.latitude,
+          coords.longitude
+        );
+        const courts = res?.data?.courts || [];
+        const top5 = courts.slice(0, 5);
+        setNearbyCourts(top5);
+        if (!courts.length) {
+          setNearbyCourtsError("Không tìm thấy sân gần bạn.");
+        } else {
+          navigation.navigate("NearbyCourts", {
+            courts: top5,
+            userLocation: coords,
+            usedFallback: isFallback,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching nearby courts:", error);
+        setNearbyCourtsError("Không thể tải danh sách sân. Vui lòng thử lại.");
+      } finally {
+        setLoadingNearbyCourts(false);
+      }
+    };
+
+    if (!navigator?.geolocation) {
+      setNearbyCourtsError("Thiết bị không hỗ trợ lấy vị trí. Dùng tọa độ mặc định HCM.");
+      fetchWithCoords(DEFAULT_NEARBY_COORDS, true);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        fetchWithCoords({ latitude, longitude }, false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        setNearbyCourtsError("Không lấy được vị trí của bạn. Dùng tọa độ mặc định HCM.");
+        fetchWithCoords(DEFAULT_NEARBY_COORDS, true);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 10000,
+      }
+    );
+  }, [navigation]);
 
   const loadActivePlan = React.useCallback(async () => {
     try {
@@ -994,6 +1054,33 @@ export default function HomeScreen({ navigation, route }) {
           }}
         />
 
+        {/* Nearby badminton courts */}
+        <View style={styles.nearbySection}>
+          <View style={styles.nearbyHeader}>
+            <View>
+              <Text style={styles.nearbyTitle}>Sân cầu lông nội thành TP.HCM</Text>
+              <Text style={styles.nearbySubtitle}>Đề xuất 5 sân gần bạn</Text>
+            </View>
+          </View>
+
+          <Text style={styles.nearbyHint}>Nhấn "Xem ngay" để mở danh sách 5 sân gần bạn</Text>
+          {nearbyCourtsError ? (
+            <Text style={styles.nearbyError}>{nearbyCourtsError}</Text>
+          ) : null}
+
+          <View style={styles.nearbyFooter}>
+            <TouchableOpacity
+              style={[styles.nearbyButton, loadingNearbyCourts && styles.nearbyButtonDisabled]}
+              onPress={fetchNearbyCourts}
+              disabled={loadingNearbyCourts}
+            >
+              <Text style={styles.nearbyButtonText}>
+                {loadingNearbyCourts ? "Đang tìm..." : "Xem ngay"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Recommended Plan Card - Dành cho bạn */}
         {recommendedPlans.length > 0 && (
           <View style={styles.recommendedSection}>
@@ -1604,6 +1691,97 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F8F8",
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  // Nearby Courts Section
+  nearbySection: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.12)",
+  },
+  nearbyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  nearbyTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1D1617",
+  },
+  nearbySubtitle: {
+    marginTop: 4,
+    color: "#7B6F72",
+    fontWeight: FONTS.medium,
+    fontSize: 13,
+  },
+  nearbyButton: {
+    backgroundColor: "#3B82F6",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+  },
+  nearbyButtonDisabled: {
+    backgroundColor: "#A5B4FC",
+  },
+  nearbyButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  nearbyList: {
+    gap: 10,
+  },
+  nearbyItem: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.1)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  nearbyName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1D1617",
+    marginBottom: 4,
+  },
+  nearbyMeta: {
+    fontSize: 13,
+    color: "#7B6F72",
+  },
+  nearbyHint: {
+    color: "#7B6F72",
+    fontSize: 13,
+  },
+  nearbyError: {
+    color: "#EF4444",
+    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  nearbyFooter: {
+    marginTop: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  nearbyLoadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  nearbyLoadingText: {
+    color: "#1D1617",
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   // Recommended Plan Section

@@ -93,10 +93,13 @@ export default function GoalSelectionScreen({ navigation, route }) {
         
         if (hasBadmintonGoal) {
           // Chuyển đến màn hình khảo sát
-          navigation.navigate('BadmintonSurvey', { profileData: completeData });
+          navigation.replace('BadmintonSurvey', { profileData: completeData });
         } else {
-          // Chuyển thẳng đến màn hình Auth
-        navigation.navigate('Auth', { userData: completeData });
+          // Nếu không có goal cầu lông, chuyển thẳng đến Home
+          navigation.replace('Home', { 
+            ...completeData,
+            isLoggedIn: true 
+          });
         }
       } catch (error) {
         console.error('Update goals error:', error.response?.data || error.message);

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GoogleLoginButton from "../components/GoogleLoginButton";
-import { authAPI } from "../services/api";
+import { authAPI, userAPI } from "../services/api";
 import { COLORS, FONTS, SHADOWS, SIZES, SPACING } from "../styles/commonStyles";
 
 export default function AuthScreen({ navigation }) {
@@ -45,6 +45,48 @@ export default function AuthScreen({ navigation }) {
     }
   };
 
+  // Hàm kiểm tra profile và điều hướng đến màn hình phù hợp
+  const checkProfileAndNavigate = (profileData) => {
+    const { age, gender, height, weight, goal, badmintonExperience, badmintonLevel, trainingPreference } = profileData;
+
+    // Kiểm tra thông tin cơ bản (age, gender, height, weight)
+    if (!age || !gender || !height || !weight) {
+      console.log("Thiếu thông tin cơ bản, chuyển đến ProfileScreen");
+      navigation.replace("Profile", { userData: profileData });
+      return;
+    }
+
+    // Kiểm tra goal
+    if (!goal || !Array.isArray(goal) || goal.length === 0) {
+      console.log("Thiếu mục tiêu, chuyển đến GoalSelectionScreen");
+      navigation.replace("GoalSelection", { profileData });
+      return;
+    }
+
+    // Kiểm tra thông tin khảo sát cầu lông
+    // Chỉ kiểm tra nếu user có goal liên quan đến cầu lông
+    // Goal được lưu là title: "Nâng cao kỹ năng cầu lông"
+    const hasBadmintonGoal = goal.some(g => {
+      const goalStr = String(g).toLowerCase();
+      return goalStr.includes("cầu lông") || 
+             goalStr.includes("kỹ năng cầu lông") ||
+             goalStr === "nâng cao kỹ năng cầu lông";
+    });
+
+    if (hasBadmintonGoal && (!badmintonExperience || !badmintonLevel || !trainingPreference)) {
+      console.log("Thiếu thông tin khảo sát, chuyển đến BadmintonSurveyScreen");
+      navigation.replace("BadmintonSurvey", { profileData });
+      return;
+    }
+
+    // Nếu đầy đủ thông tin, chuyển đến Home
+    console.log("Profile đầy đủ, chuyển đến Home");
+    navigation.replace("Home", { 
+      ...profileData,
+      isLoggedIn: true 
+    });
+  };
+
   const handleLogin = async () => {
     try {
       const res = await authAPI.login(email, password);
@@ -54,16 +96,25 @@ export default function AuthScreen({ navigation }) {
         await AsyncStorage.setItem("token", res.data.token);
       }
 
-      const userData = res.data.user || {
-        firstName: "Stefani",
-        lastName: "Wong",
-        email: email,
-        isLoggedIn: true,
-      };
-      navigation.replace("Welcome", { userData });
-    } catch (error) {
-      
+      // Lấy đầy đủ thông tin profile từ API
+      try {
+        const profileResponse = await userAPI.getProfile();
+        const fullProfileData = profileResponse.data;
+        console.log("Full profile data:", fullProfileData);
 
+        // Kiểm tra profile và điều hướng
+        checkProfileAndNavigate(fullProfileData);
+      } catch (profileError) {
+        console.error("Error fetching profile:", profileError);
+        // Nếu không lấy được profile, sử dụng dữ liệu từ login response
+        const userData = res.data.user || {
+          email: email,
+          isLoggedIn: true,
+        };
+        // Chuyển đến Profile để điền thông tin
+        navigation.replace("Profile", { userData });
+      }
+    } catch (error) {
       const status = error.response?.status;
       const data = error.response?.data;
       const message = data?.message || "Email hoặc mật khẩu không đúng!";

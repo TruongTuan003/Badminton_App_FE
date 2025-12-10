@@ -12,9 +12,9 @@ import {
   Text,
   TouchableOpacity,
   View,
-  PermissionsAndroid,
   Platform,
 } from "react-native";
+import * as Location from "expo-location";
 import { LineChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ChatBotAI from "../components/ChatBotAI";
@@ -165,20 +165,11 @@ export default function HomeScreen({ navigation, route }) {
     }
   }, []);
 
-  // Xin quyền truy cập vị trí (Android)
+  // Xin quyền truy cập vị trí (dùng expo-location cho cross-platform)
   const requestLocationPermission = React.useCallback(async () => {
-    if (Platform.OS !== "android") return true;
     try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-          title: "Quyền truy cập vị trí",
-          message: "Ứng dụng cần quyền vị trí để tìm 5 sân gần bạn",
-          buttonPositive: "Đồng ý",
-          buttonNegative: "Từ chối",
-        }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      return status === "granted";
     } catch (err) {
       console.error("Error requesting location permission:", err);
       return false;
@@ -225,28 +216,18 @@ export default function HomeScreen({ navigation, route }) {
       return;
     }
 
-    if (!navigator?.geolocation) {
-      setNearbyCourtsError("Thiết bị không hỗ trợ lấy vị trí. Dùng tọa độ mặc định HCM.");
-      fetchWithCoords(DEFAULT_NEARBY_COORDS, true);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        fetchWithCoords({ latitude, longitude }, false);
-      },
-      (error) => {
-        console.error("Geolocation error:", error);
-        setNearbyCourtsError("Không lấy được vị trí của bạn. Dùng tọa độ mặc định HCM.");
-        fetchWithCoords(DEFAULT_NEARBY_COORDS, true);
-      },
-      {
-        enableHighAccuracy: true,
+    try {
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
         timeout: 15000,
-        maximumAge: 10000,
-      }
-    );
+      });
+      const { latitude, longitude } = position.coords;
+      fetchWithCoords({ latitude, longitude }, false);
+    } catch (error) {
+      console.error("Geolocation error:", error);
+      setNearbyCourtsError("Không lấy được vị trí của bạn. Dùng tọa độ mặc định HCM.");
+      fetchWithCoords(DEFAULT_NEARBY_COORDS, true);
+    }
   }, [navigation, requestLocationPermission]);
 
   const loadActivePlan = React.useCallback(async () => {

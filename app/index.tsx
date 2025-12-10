@@ -28,6 +28,7 @@ import TrainingPlanListScreen from '../src/screens/TrainingPlanListScreen';
 import UserScreen from '../src/screens/UserScreen';
 import WelcomeScreen from '../src/screens/WelcomeScreen';
 import WorkoutScreen from '../src/screens/WorkoutScreen';
+import NearbyCourtsScreen from '../src/screens/NearbyCourtsScreen'; // 2025-12-09 12:34:12 - màn hình danh sách sân gần bạn
 
 
 const Stack = createStackNavigator();
@@ -64,6 +65,7 @@ export default function App() {
       <Stack.Screen name="ActivityHistory" component={ActivityHistoryScreen} options={{ title: 'Lịch sử hoạt động', headerShown: false }} />
       <Stack.Screen name="BadmintonKnowledge" component={BadmintonKnowledgeScreen} options={{ title: 'Kiến thức cầu lông', headerShown: false }} />
       <Stack.Screen name="BadmintonKnowledgeDetail" component={BadmintonKnowledgeDetailScreen} options={{ title: 'Kiến thức chi tiết', headerShown: false }} />
+      <Stack.Screen name="NearbyCourts" component={NearbyCourtsScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
     </SafeAreaProvider>
   );

@@ -12,6 +12,8 @@ import {
   Text,
   TouchableOpacity,
   View,
+  PermissionsAndroid,
+  Platform,
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -163,7 +165,27 @@ export default function HomeScreen({ navigation, route }) {
     }
   }, []);
 
-  const fetchNearbyCourts = React.useCallback(() => {
+  // Xin quyền truy cập vị trí (Android)
+  const requestLocationPermission = React.useCallback(async () => {
+    if (Platform.OS !== "android") return true;
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: "Quyền truy cập vị trí",
+          message: "Ứng dụng cần quyền vị trí để tìm 5 sân gần bạn",
+          buttonPositive: "Đồng ý",
+          buttonNegative: "Từ chối",
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.error("Error requesting location permission:", err);
+      return false;
+    }
+  }, []);
+
+  const fetchNearbyCourts = React.useCallback(async () => {
     // 2025-12-09 12:34:12 - Lấy vị trí, fallback HCM, và mở danh sách 5 sân gần nhất
     setLoadingNearbyCourts(true);
     setNearbyCourtsError("");
@@ -195,6 +217,14 @@ export default function HomeScreen({ navigation, route }) {
       }
     };
 
+    // Xin quyền vị trí trước khi lấy toạ độ
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) {
+      setNearbyCourtsError("Bạn cần cấp quyền vị trí. Đang dùng tọa độ mặc định HCM.");
+      fetchWithCoords(DEFAULT_NEARBY_COORDS, true);
+      return;
+    }
+
     if (!navigator?.geolocation) {
       setNearbyCourtsError("Thiết bị không hỗ trợ lấy vị trí. Dùng tọa độ mặc định HCM.");
       fetchWithCoords(DEFAULT_NEARBY_COORDS, true);
@@ -217,7 +247,7 @@ export default function HomeScreen({ navigation, route }) {
         maximumAge: 10000,
       }
     );
-  }, [navigation]);
+  }, [navigation, requestLocationPermission]);
 
   const loadActivePlan = React.useCallback(async () => {
     try {

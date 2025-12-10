@@ -102,7 +102,7 @@ export default function ChatBotAI({ isOpen: externalIsOpen, onToggle: externalOn
     setIsLoading(true);
 
     try {
-      const res = await api.post("http://192.168.1.142:5000/chat", {
+      const res = await api.post("https://ai-recommendation-gnb2.onrender.com/chat", {
         message: userMessage.content,
         userId: userId,
       });

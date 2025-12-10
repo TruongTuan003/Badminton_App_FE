@@ -17,7 +17,7 @@ export default function GoogleLoginButton({ onLoginSuccess }) {
 
   const handleLogin = async () => {
     try {
-      const backendUrl = "https://badminton-app-be.xyz/api/auth/google";
+      const backendUrl = "https://bad2pro.site/api/auth/google";
 
       const result = await WebBrowser.openAuthSessionAsync(backendUrl);
 

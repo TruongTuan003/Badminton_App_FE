@@ -1,7 +1,8 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,8 +15,8 @@ import {
   View
 } from "react-native";
 import { Calendar } from "react-native-calendars";
-import { LinearGradient } from "expo-linear-gradient";
-import { trainingPlanAPI, aiRecommendationAPI, userAPI, scheduleAPI } from "../services/api";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { aiRecommendationAPI, scheduleAPI, trainingPlanAPI, userAPI } from "../services/api";
 
 export default function TrainingPlanListScreen({ navigation }) {
   const [plans, setPlans] = useState([]);
@@ -868,7 +869,7 @@ export default function TrainingPlanListScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header - Fixed */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -1120,7 +1121,7 @@ export default function TrainingPlanListScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -1145,7 +1146,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 50,
     paddingBottom: 20,
   },
   backButton: {

@@ -1,21 +1,21 @@
+import { Feather } from "@expo/vector-icons";
 import React from "react";
 import {
   ActivityIndicator,
   FlatList,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NearbyCourtsScreen({ route, navigation }) {
   const { courts = [], userLocation, usedFallback = false } = route.params || {};
   const [loading] = React.useState(false);
 
   const renderItem = ({ item, index }) => (
-    <View style={styles.card}>
+    <SafeAreaView style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={[styles.rank, index < 3 && styles.rankTop]}>
           <Text style={styles.rankText}>#{index + 1}</Text>
@@ -35,7 +35,7 @@ export default function NearbyCourtsScreen({ route, navigation }) {
           {item.phone ? <Text style={styles.meta}>📞 {item.phone}</Text> : null}
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 
   return (

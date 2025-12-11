@@ -1,6 +1,6 @@
+import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons, MaterialIcons, Feather } from "@expo/vector-icons";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,8 @@ import {
   View
 } from "react-native";
 import { Calendar } from "react-native-calendars";
-import { trainingPlanAPI, scheduleAPI } from "../services/api";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { scheduleAPI, trainingPlanAPI } from "../services/api";
 
 export default function TrainingPlanDetailScreen({ route, navigation }) {
   const { plan, isActive, startDate: activeStartDate } = route.params;
@@ -830,7 +831,7 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -1055,7 +1056,7 @@ export default function TrainingPlanDetailScreen({ route, navigation }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -1069,7 +1070,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 50,
     paddingBottom: 20,
   },
   backButton: {

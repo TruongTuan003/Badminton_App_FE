@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
+import { SafeAreaView } from "react-native-safe-area-context";
 import api from "../services/api"; // dùng instance axios bạn có sẵn
 
 export default function ScheduleScreen({ navigation, route }) {
@@ -73,7 +74,7 @@ export default function ScheduleScreen({ navigation, route }) {
   );
   
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -228,7 +229,7 @@ export default function ScheduleScreen({ navigation, route }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -239,7 +240,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 40,
   },
   headerTitle: { fontSize: 20, fontWeight: "bold", color: "#1D1617" },
   dateContainer: {

@@ -121,10 +121,11 @@ export default function BadmintonSurveyScreen({ navigation, route }) {
       console.log('Complete Profile Data with Survey:', completeData);
       
       // Sau khi hoàn thành khảo sát, chuyển đến Home vì profile đã đầy đủ
-      navigation.replace('Home', { 
-        ...completeData,
-        isLoggedIn: true 
-      });
+      //sau khi hoàn thành khảo sát, quay lại trang đăng nhập
+      navigation.navigate('Auth');{
+        return;
+      }
+
     } catch (error) {
       console.error('Update survey error:', error.response?.data || error.message);
       Alert.alert(

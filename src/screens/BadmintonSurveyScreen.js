@@ -29,8 +29,8 @@ const levelOptions = [
 ];
 
 const preferenceOptions = [
-  { id: 1, label: 'Đánh đơn', value: 'singles', description: 'Thích tập luyện một mình' },
-  { id: 2, label: 'Đánh đôi', value: 'doubles', description: 'Thích tập luyện cùng bạn' },
+  { id: 1, label: 'Đánh đơn', value: 'singles', description: 'Kỹ năng đánh đơn' },
+  { id: 2, label: 'Đánh đôi', value: 'doubles', description: 'Kỹ năng đánh đôi' },
   { id: 3, label: 'Cả hai', value: 'both', description: 'Thích cả đánh đơn và đánh đôi' },
 ];
 
